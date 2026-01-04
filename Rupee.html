@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14f1d9">
+<meta charset="UTF-8">
+<title>Daily Pay Tracker v1.2</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root {
+  --bg:#020617;
+  --card:#0b1220;
+  --primary:#14f1d9;
+  --accent:#38bdf8;
+  --success:#22c55e;
+  --danger:#ef4444;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+}
+
+* { box-sizing:border-box }
+
+body {
+  margin:0;
+  font-family: system-ui, sans-serif;
+  background: radial-gradient(circle at top, #020617, #020617);
+  color: var(--text);
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+
+.container {
+  width:100%;
+  max-width:480px;
+  background: var(--card);
+  border-radius:22px;
+  padding:22px;
+  box-shadow: 0 40px 100px rgba(0,0,0,.75);
+}
+
+h1 { text-align:center; margin-top:0 }
+
+label {
+  font-size:12px;
+  color:var(--muted);
+  margin-top:12px;
+  display:block;
+}
+
+input {
+  width:100%;
+  margin-top:6px;
+  padding:10px;
+  border-radius:12px;
+  border:none;
+  background:#020617;
+  color:var(--text);
+}
+
+button {
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:14px;
+  background: linear-gradient(135deg,var(--primary),var(--accent));
+  color:#020617;
+  font-weight:600;
+  cursor:pointer;
+}
+
+button.secondary {
+  background:#111827;
+  color:var(--text);
+}
+
+button.danger {
+  background:#3f1d1d;
+  color:#fecaca;
+}
+
+.money {
+  text-align:center;
+  font-size:34px;
+  font-weight:700;
+  color:var(--success);
+  margin-top:16px;
+}
+
+.small {
+  text-align:center;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.progress {
+  height:8px;
+  background:#020617;
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:6px;
+}
+
+.progress div {
+  height:100%;
+  background: linear-gradient(90deg,var(--primary),var(--accent));
+  width:0%;
+}
+
+.section {
+  margin-top:20px;
+  padding-top:14px;
+  border-top:1px solid #1f2937;
+}
+
+.log-item {
+  font-size:13px;
+  color:var(--muted);
+  margin-top:8px;
+  line-height:1.4;
+}
+
+.stats {
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.6;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>Daily Pay Tracker</h1>
+
+<label>Daily Goal (optional)</label>
+<input id="dailyGoal" type="number">
+
+<label>Weekly Goal (optional)</label>
+<input id="weeklyGoal" type="number">
+
+<div class="section">
+  <label>Job Name (Where you worked)</label>
+  <input id="jobName">
+
+  <label>Hourly Rate</label>
+  <input id="rate" type="number" step="0.01">
+
+  <button onclick="startShift()">Start Job</button>
+  <button class="secondary" onclick="endShift()">End Job</button>
+</div>
+
+<div class="money">$<span id="current">0.00</span></div>
+<div class="small">Current Job Earnings</div>
+
+<div class="money">$<span id="daily">0.00</span></div>
+<div class="small">Daily Total</div>
+
+<div class="small">Daily Goal Remaining: $<span id="dailyRemain">—</span></div>
+<div class="progress"><div id="dailyBar"></div></div>
+
+<div class="section stats" id="weeklyStats"></div>
+
+<div class="section" id="log"></div>
+
+<button class="danger" onclick="resetDay()">Start New Day</button>
+
+</div>
+
+<script>
+let timer, startTime;
+let rate = 0, currentEarned = 0;
+
+let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
+  jobs: []
+};
+
+const $ = id => document.getElementById(id);
+
+function startShift(){
+  if(timer) return;
+  rate = parseFloat($("rate").value);
+  if(!rate || !$("jobName").value) return alert("Enter job name and rate");
+  startTime = Date.now();
+  timer = setInterval(update, 1000);
+}
+
+function endShift(){
+  if(!timer) return;
+  clearInterval(timer);
+  timer = null;
+
+  const seconds = (Date.now() - startTime) / 1000;
+
+  data.jobs.push({
+    job: $("jobName").value,
+    rate,
+    earned: currentEarned,
+    seconds,
+    date: new Date().toISOString()
+  });
+
+  currentEarned = 0;
+  $("current").textContent = "0.00";
+  save();
+  render();
+}
+
+function update(){
+  currentEarned = (rate / 3600) * ((Date.now() - startTime) / 1000);
+  render();
+}
+
+function render(){
+  const dailyTotal = data.jobs.reduce((s,j)=>s+j.earned,0) + currentEarned;
+  $("current").textContent = currentEarned.toFixed(2);
+  $("daily").textContent = dailyTotal.toFixed(2);
+
+  renderGoals(dailyTotal);
+  renderWeekly();
+  renderLog();
+  save();
+}
+
+function renderGoals(total){
+  const d = parseFloat($("dailyGoal").value);
+  if(d){
+    const remain = Math.max(d - total, 0);
+    $("dailyRemain").textContent = remain.toFixed(2);
+    $("dailyBar").style.width = Math.min((total/d)*100,100)+"%";
+  }
+}
+
+function renderWeekly(){
+  const weekAgo = Date.now() - 604800000;
+  const weekJobs = data.jobs.filter(j => new Date(j.date) > weekAgo);
+  const total = weekJobs.reduce((s,j)=>s+j.earned,0);
+  const goal = parseFloat($("weeklyGoal").value);
+
+  $("weeklyStats").innerHTML = `
+    Weekly Total: $${total.toFixed(2)}<br>
+    Jobs This Week: ${weekJobs.length}<br>
+    ${goal ? `Weekly Goal Remaining: $${Math.max(goal-total,0).toFixed(2)}` : ""}
+  `;
+}
+
+function renderLog(){
+  $("log").innerHTML = data.jobs.map(j=>{
+    const h = Math.floor(j.seconds/3600);
+    const m = Math.floor((j.seconds%3600)/60);
+    return `<div class="log-item">
+      <strong>${j.job}</strong><br>
+      $${j.earned.toFixed(2)} — ${h}h ${m}m
+    </div>`;
+  }).join("");
+}
+
+function save(){
+  localStorage.setItem("payTrackerV1_2", JSON.stringify(data));
+}
+
+function resetDay(){
+  if(confirm("Start a new day?")){
+    localStorage.removeItem("payTrackerV1_2");
+    location.reload();
+  }
+}
+
+render();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
