@@ -6,6 +6,10 @@
 <meta charset="UTF-8">
 <title>Daily Pay Tracker v1.2</title>
 
+<button id="notifyBtn" class="secondary" onclick="enableNotifications()">
+  Enable Notifications
+</button>
+
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -283,6 +287,22 @@ function scheduleShiftReminder(jobName) {
   });
 }
 
+function enableNotifications() {
+  if (!("Notification" in window)) {
+    alert("Notifications not supported on this device");
+    return;
+  }
+
+  Notification.requestPermission().then(permission => {
+    if (permission === "granted") {
+      alert("Notifications enabled!");
+      $("notifyBtn").style.display = "none";
+    } else {
+      alert("Notifications were not enabled");
+    }
+  });
+}
+
 function render(){
   currentEarned = getCurrentEarned();
 
@@ -291,6 +311,11 @@ function render(){
 
   $("current").textContent = currentEarned.toFixed(2);
   $("daily").textContent = dailyTotal.toFixed(2);
+  
+  if ("Notification" in window && Notification.permission === "granted") {
+  const btn = document.getElementById("notifyBtn");
+  if (btn) btn.style.display = "none";
+}
 
   renderGoals(dailyTotal);
   renderWeekly();
@@ -362,5 +387,6 @@ window.addEventListener("load", () => {
 
 </body>
 </html>
+
 
 
