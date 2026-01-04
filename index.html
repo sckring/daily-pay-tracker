@@ -177,8 +177,9 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-let timer, startTime;
-let rate = 0, currentEarned = 0;
+let timer = null;
+let rate = 0;
+let currentEarned = 0;
 
 let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
   jobs: [],
@@ -207,9 +208,10 @@ function startShift(){
   rate = rateInput;
   startTimer();
   save();
+  render();
 }
 
-function startTimer() {
+function startTimer(){
   if (timer) return;
   timer = setInterval(render, 1000);
 }
@@ -235,20 +237,17 @@ function endShift(){
   clearInterval(timer);
   timer = null;
 
-  $("current").textContent = "0.00";
   save();
   render();
 }
 
-  currentEarned = 0;
-  $("current").textContent = "0.00";
-  save();
-  render();
-}
+function getCurrentEarned(){
+  if (!data.activeShift) return 0;
 
-function update(){
-  currentEarned = (rate / 3600) * ((Date.now() - startTime) / 1000);
-  render();
+  const elapsedSeconds =
+    (Date.now() - data.activeShift.startTime) / 1000;
+
+  return (data.activeShift.rate / 3600) * elapsedSeconds;
 }
 
 function render(){
@@ -264,22 +263,12 @@ function render(){
   renderWeekly();
   renderLog();
   save();
-  
-window.addEventListener("load", () => {
-  if (data.activeShift) {
-    rate = data.activeShift.rate;
-    startTimer();
-    render();
-  }
-});
-}
 }
 
 function renderGoals(total){
   const d = parseFloat($("dailyGoal").value);
   if(d){
-    const remain = Math.max(d - total, 0);
-    $("dailyRemain").textContent = remain.toFixed(2);
+    $("dailyRemain").textContent = Math.max(d-total,0).toFixed(2);
     $("dailyBar").style.width = Math.min((total/d)*100,100)+"%";
   }
 }
@@ -312,15 +301,6 @@ function save(){
   localStorage.setItem("payTrackerV1_2", JSON.stringify(data));
 }
 
-function getCurrentEarned() {
-  if (!data.activeShift) return 0;
-
-  const elapsedSeconds =
-    (Date.now() - data.activeShift.startTime) / 1000;
-
-  return (data.activeShift.rate / 3600) * elapsedSeconds;
-}
-
 function resetDay(){
   if(confirm("Start a new day?")){
     localStorage.removeItem("payTrackerV1_2");
@@ -328,13 +308,13 @@ function resetDay(){
   }
 }
 
-render();
-</script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
-}
+window.addEventListener("load", () => {
+  if (data.activeShift) {
+    rate = data.activeShift.rate;
+    startTimer();
+  }
+  render();
+});
 </script>
 
 </body>
