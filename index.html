@@ -188,6 +188,10 @@ let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
 
 const $ = id => document.getElementById(id);
 
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist();
+}
+
 function startShift(){
   if (data.activeShift) return;
 
@@ -319,3 +323,4 @@ window.addEventListener("load", () => {
 
 </body>
 </html>
+
