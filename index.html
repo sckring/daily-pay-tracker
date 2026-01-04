@@ -171,6 +171,12 @@ button.danger {
 </div>
 
 <script>
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    render();
+  }
+});
+
 let timer, startTime;
 let rate = 0, currentEarned = 0;
 
@@ -250,6 +256,7 @@ function render(){
 
   const dailyTotal =
     data.jobs.reduce((s,j)=>s+j.earned,0) + currentEarned;
+
   $("current").textContent = currentEarned.toFixed(2);
   $("daily").textContent = dailyTotal.toFixed(2);
 
@@ -258,9 +265,13 @@ function render(){
   renderLog();
   save();
   
+window.addEventListener("load", () => {
   if (data.activeShift) {
-  rate = data.activeShift.rate;
-  startTimer();
+    rate = data.activeShift.rate;
+    startTimer();
+    render();
+  }
+});
 }
 }
 
@@ -328,4 +339,3 @@ if ("serviceWorker" in navigator) {
 
 </body>
 </html>
-
