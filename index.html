@@ -175,33 +175,64 @@ let timer, startTime;
 let rate = 0, currentEarned = 0;
 
 let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
-  jobs: []
+  jobs: [],
+  activeShift: null
 };
 
 const $ = id => document.getElementById(id);
 
 function startShift(){
-  if(timer) return;
-  rate = parseFloat($("rate").value);
-  if(!rate || !$("jobName").value) return alert("Enter job name and rate");
-  startTime = Date.now();
-  timer = setInterval(update, 1000);
+  if (data.activeShift) return;
+
+  const rateInput = parseFloat($("rate").value);
+  const job = $("jobName").value;
+
+  if(!rateInput || !job) {
+    alert("Enter job name and rate");
+    return;
+  }
+
+  data.activeShift = {
+    job,
+    rate: rateInput,
+    startTime: Date.now()
+  };
+
+  rate = rateInput;
+  startTimer();
+  save();
+}
+
+function startTimer() {
+  if (timer) return;
+  timer = setInterval(render, 1000);
 }
 
 function endShift(){
-  if(!timer) return;
-  clearInterval(timer);
-  timer = null;
+  if (!data.activeShift) return;
 
-  const seconds = (Date.now() - startTime) / 1000;
+  const earned = getCurrentEarned();
+  const seconds =
+    (Date.now() - data.activeShift.startTime) / 1000;
 
   data.jobs.push({
-    job: $("jobName").value,
-    rate,
-    earned: currentEarned,
+    job: data.activeShift.job,
+    rate: data.activeShift.rate,
+    earned,
     seconds,
     date: new Date().toISOString()
   });
+
+  data.activeShift = null;
+  currentEarned = 0;
+
+  clearInterval(timer);
+  timer = null;
+
+  $("current").textContent = "0.00";
+  save();
+  render();
+}
 
   currentEarned = 0;
   $("current").textContent = "0.00";
@@ -215,7 +246,10 @@ function update(){
 }
 
 function render(){
-  const dailyTotal = data.jobs.reduce((s,j)=>s+j.earned,0) + currentEarned;
+  currentEarned = getCurrentEarned();
+
+  const dailyTotal =
+    data.jobs.reduce((s,j)=>s+j.earned,0) + currentEarned;
   $("current").textContent = currentEarned.toFixed(2);
   $("daily").textContent = dailyTotal.toFixed(2);
 
@@ -223,6 +257,11 @@ function render(){
   renderWeekly();
   renderLog();
   save();
+  
+  if (data.activeShift) {
+  rate = data.activeShift.rate;
+  startTimer();
+}
 }
 
 function renderGoals(total){
@@ -262,6 +301,15 @@ function save(){
   localStorage.setItem("payTrackerV1_2", JSON.stringify(data));
 }
 
+function getCurrentEarned() {
+  if (!data.activeShift) return 0;
+
+  const elapsedSeconds =
+    (Date.now() - data.activeShift.startTime) / 1000;
+
+  return (data.activeShift.rate / 3600) * elapsedSeconds;
+}
+
 function resetDay(){
   if(confirm("Start a new day?")){
     localStorage.removeItem("payTrackerV1_2");
@@ -280,3 +328,4 @@ if ("serviceWorker" in navigator) {
 
 </body>
 </html>
+
