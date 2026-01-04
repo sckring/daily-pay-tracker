@@ -237,7 +237,7 @@ function startShift(){
     }
   }, delay);
 
-  //save();
+  save();
 }
 
 function startTimer(){
@@ -293,7 +293,7 @@ function scheduleShiftReminder(jobName) {
       icon: "icon-192.png",
       tag: "shift-reminder"
     });
-  });
+  }).catch(err => console.error("SW not ready", err));
 }
 
 function enableNotifications() {
@@ -376,16 +376,27 @@ function resetDay(){
 }
 
 window.addEventListener("load", () => {
+  // Register the service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(() => console.log('Service worker registered'))
+      .catch(err => console.error('Service worker registration failed:', err));
+  }
+
+  // Request notification permission
   requestNotificationPermission();
 
+  // Resume active shift if any
   if (data.activeShift) {
     rate = data.activeShift.rate;
     startTimer();
-    render();
   }
+
+  render();
 });
 
 window.addEventListener("load", () => {
+
   if (data.activeShift) {
     rate = data.activeShift.rate;
     startTimer();
