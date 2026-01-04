@@ -192,6 +192,14 @@ if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist();
 }
 
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+}
+
 function startShift(){
   if (data.activeShift) return;
 
@@ -211,8 +219,15 @@ function startShift(){
 
   rate = rateInput;
   startTimer();
+
+  // 🔔 Schedule reminder
+  setTimeout(() => {
+    if (data.activeShift) {
+      scheduleShiftReminder(job);
+    }
+  }, 60 * 60 * 1000); // 1 hour
+
   save();
-  render();
 }
 
 function startTimer(){
@@ -252,6 +267,20 @@ function getCurrentEarned(){
     (Date.now() - data.activeShift.startTime) / 1000;
 
   return (data.activeShift.rate / 3600) * elapsedSeconds;
+}
+
+function scheduleShiftReminder(jobName) {
+  if (!("serviceWorker" in navigator)) return;
+  if (Notification.permission !== "granted") return;
+
+  navigator.serviceWorker.ready.then(reg => {
+    reg.showNotification("Shift Reminder", {
+      body: `You've been working on ${jobName} for 1 hour`,
+      icon: "icon-192.png",
+      tag: "shift-reminder",
+      requireInteraction: false
+    });
+  });
 }
 
 function render(){
@@ -313,6 +342,16 @@ function resetDay(){
 }
 
 window.addEventListener("load", () => {
+  requestNotificationPermission();
+
+  if (data.activeShift) {
+    rate = data.activeShift.rate;
+    startTimer();
+    render();
+  }
+});
+
+window.addEventListener("load", () => {
   if (data.activeShift) {
     rate = data.activeShift.rate;
     startTimer();
@@ -323,4 +362,5 @@ window.addEventListener("load", () => {
 
 </body>
 </html>
+
 
