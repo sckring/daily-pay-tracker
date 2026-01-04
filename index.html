@@ -196,6 +196,8 @@ if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist();
 }
 
+const TEST_NOTIFICATIONS = true; // 🔁 change to false for real use
+
 async function requestNotificationPermission() {
   if (!("Notification" in window)) return;
 
@@ -225,11 +227,15 @@ function startShift(){
   startTimer();
 
   // 🔔 Schedule reminder
+    const delay = TEST_NOTIFICATIONS
+    ? 1 * 60 * 1000      // 1 minute (test)
+    : 60 * 60 * 1000;   // 1 hour (real)
+
   setTimeout(() => {
     if (data.activeShift) {
       scheduleShiftReminder(job);
     }
-  }, 60 * 60 * 1000); // 1 hour
+  }, delay);
 
   save();
 }
@@ -277,12 +283,15 @@ function scheduleShiftReminder(jobName) {
   if (!("serviceWorker" in navigator)) return;
   if (Notification.permission !== "granted") return;
 
+  const message = TEST_NOTIFICATIONS
+    ? `TEST: You've been working on ${jobName} for 1 minute`
+    : `You've been working on ${jobName} for 1 hour`;
+
   navigator.serviceWorker.ready.then(reg => {
     reg.showNotification("Shift Reminder", {
-      body: `You've been working on ${jobName} for 1 hour`,
+      body: message,
       icon: "icon-192.png",
-      tag: "shift-reminder",
-      requireInteraction: false
+      tag: "shift-reminder"
     });
   });
 }
