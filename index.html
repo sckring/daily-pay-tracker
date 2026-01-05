@@ -136,10 +136,6 @@ button.danger {
 
 <h1>Daily Pay Tracker</h1>
 
-<button id="notifyBtn" class="secondary" onclick="enableNotifications()">
-  Enable Notifications
-</button>
-
 <label>Daily Goal (optional)</label>
 <input id="dailyGoal" type="number">
 
@@ -237,11 +233,6 @@ function startShift(){
   rate = rateInput;
   startTimer();
 
-  // 🔔 Schedule reminder
-    const delay = TEST_NOTIFICATIONS
-    ? 1 * 60 * 1000      // 1 minute (test)
-    : 60 * 60 * 1000;   // 1 hour (real)
-
   save();
 }
 
@@ -306,29 +297,19 @@ function addMiscIncome() {
   render();
 }
 
-function getCurrentEarned(){
-  if (!data.activeShift) return 0;
-
-  const elapsedSeconds =
-    (Date.now() - data.activeShift.startTime) / 1000;
-
-  return (data.activeShift.rate / 3600) * elapsedSeconds;
-}
-
 function render(){
   currentEarned = getCurrentEarned();
 
   const miscTotal =
-  data.misc.reduce((s,m)=>s+m.amount,0);
+    data.misc.reduce((s,m)=>s+m.amount,0);
 
-const dailyTotal =
-  data.jobs.reduce((s,j)=>s+j.earned,0) +
-  miscTotal +
-  currentEarned;
+  const dailyTotal =
+    data.jobs.reduce((s,j)=>s+j.earned,0) +
+    miscTotal +
+    currentEarned;
 
   $("current").textContent = currentEarned.toFixed(2);
   $("daily").textContent = dailyTotal.toFixed(2);
-}
 
   renderGoals(dailyTotal);
   renderWeekly();
@@ -430,6 +411,7 @@ if (miscDateInput) miscDateInput.value = today;
 
 </body>
 </html>
+
 
 
 
