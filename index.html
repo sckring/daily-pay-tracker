@@ -6,10 +6,6 @@
 <meta charset="UTF-8">
 <title>Daily Pay Tracker v1.2</title>
 
-<button id="notifyBtn" class="secondary" onclick="enableNotifications()">
-  Enable Notifications
-</button>
-
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -140,6 +136,10 @@ button.danger {
 
 <h1>Daily Pay Tracker</h1>
 
+<button id="notifyBtn" class="secondary" onclick="enableNotifications()">
+  Enable Notifications
+</button>
+
 <label>Daily Goal (optional)</label>
 <input id="dailyGoal" type="number">
 
@@ -155,6 +155,16 @@ button.danger {
 
   <button onclick="startShift()">Start Job</button>
   <button class="secondary" onclick="endShift()">End Job</button>
+</div>
+
+<div class="section">
+  <label>Misc Income (Tips, Bonus, Cash)</label>
+  <input id="miscLabel" placeholder="Description (e.g. Tip)">
+  <input id="miscAmount" type="number" step="0.01" placeholder="Amount">
+
+  <button class="secondary" onclick="addMiscIncome()">
+    Add Misc Income
+  </button>
 </div>
 
 <div class="money">$<span id="current">0.00</span></div>
@@ -187,8 +197,11 @@ let currentEarned = 0;
 
 let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
   jobs: [],
+  misc: [],
   activeShift: null
 };
+
+if (!data.misc) data.misc = [];
 
 const $ = id => document.getElementById(id);
 
@@ -231,12 +244,6 @@ function startShift(){
     ? 1 * 60 * 1000      // 1 minute (test)
     : 60 * 60 * 1000;   // 1 hour (real)
 
-  setTimeout(() => {
-    if (data.activeShift) {
-      scheduleShiftReminder(job);
-    }
-  }, delay);
-
   save();
 }
 
@@ -265,6 +272,28 @@ function endShift(){
 
   clearInterval(timer);
   timer = null;
+
+  save();
+  render();
+}
+
+function addMiscIncome() {
+  const label = $("miscLabel").value.trim();
+  const amount = parseFloat($("miscAmount").value);
+
+  if (!label || !amount || amount <= 0) {
+    alert("Enter a description and amount");
+    return;
+  }
+
+  data.misc.push({
+    label,
+    amount,
+    date: new Date().toISOString()
+  });
+
+  $("miscLabel").value = "";
+  $("miscAmount").value = "";
 
   save();
   render();
@@ -315,8 +344,13 @@ function enableNotifications() {
 function render(){
   currentEarned = getCurrentEarned();
 
-  const dailyTotal =
-    data.jobs.reduce((s,j)=>s+j.earned,0) + currentEarned;
+  const miscTotal =
+  data.misc.reduce((s,m)=>s+m.amount,0);
+
+const dailyTotal =
+  data.jobs.reduce((s,j)=>s+j.earned,0) +
+  miscTotal +
+  currentEarned;
 
   $("current").textContent = currentEarned.toFixed(2);
   $("daily").textContent = dailyTotal.toFixed(2);
@@ -343,7 +377,8 @@ function renderGoals(total){
 function renderWeekly(){
   const weekAgo = Date.now() - 604800000;
   const weekJobs = data.jobs.filter(j => new Date(j.date) > weekAgo);
-  const total = weekJobs.reduce((s,j)=>s+j.earned,0);
+  const weekMisc = data.misc.filter(m => new Data(m.date) > weekAgo);
+  const total = weekJobs.reduce((s,j)=>s+j.earned,0) + (weekMisc.reduce((s,m,)=>s+m.amount,0);
   const goal = parseFloat($("weeklyGoal").value);
 
   $("weeklyStats").innerHTML = `
@@ -354,14 +389,23 @@ function renderWeekly(){
 }
 
 function renderLog(){
-  $("log").innerHTML = data.jobs.map(j=>{
+  const jobEntries = data.jobs.map(j => {
     const h = Math.floor(j.seconds/3600);
     const m = Math.floor((j.seconds%3600)/60);
     return `<div class="log-item">
       <strong>${j.job}</strong><br>
       $${j.earned.toFixed(2)} — ${h}h ${m}m
     </div>`;
-  }).join("");
+  });
+
+  const miscEntries = data.misc.map(m => {
+    return `<div class="log-item">
+      <strong>${m.label}</strong><br>
+      +$${m.amount.toFixed(2)} — Misc Income
+    </div>`;
+  });
+
+  $("log").innerHTML = [...miscEntries, ...jobEntries].join("");
 }
 
 function save(){
@@ -382,9 +426,6 @@ window.addEventListener("load", () => {
       .then(() => console.log('Service worker registered'))
       .catch(err => console.error('Service worker registration failed:', err));
   }
-
-  // Request notification permission
-  requestNotificationPermission();
 
   // Resume active shift if any
   if (data.activeShift) {
@@ -407,6 +448,7 @@ window.addEventListener("load", () => {
 
 </body>
 </html>
+
 
 
 
