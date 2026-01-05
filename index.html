@@ -232,7 +232,7 @@ function startShift(){
 
   rate = rateInput;
   startTimer();
-
+  render(); // ✅ FORCE UI UPDATE
   save();
 }
 
@@ -380,31 +380,17 @@ function resetDay(){
 }
 
 window.addEventListener("load", () => {
-  // Register the service worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(() => console.log('Service worker registered'))
-      .catch(err => console.error('Service worker registration failed:', err));
-  }
+  // Default misc date to today
+  const today = new Date().toISOString().split("T")[0];
+  const miscDateInput = document.getElementById("miscDate");
+  if (miscDateInput) miscDateInput.value = today;
 
-  // Resume active shift if any
+  // Resume active shift
   if (data.activeShift) {
     rate = data.activeShift.rate;
     startTimer();
   }
 
-  render();
-});
-
-window.addEventListener("load", () => {
-const today = new Date().toISOString().split("T")[0];
-const miscDateInput = document.getElementById("miscDate");
-if (miscDateInput) miscDateInput.value = today;
-
-  if (data.activeShift) {
-    rate = data.activeShift.rate;
-    startTimer();
-  }
   render();
 });
 </script>
