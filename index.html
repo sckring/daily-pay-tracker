@@ -159,8 +159,16 @@ button.danger {
 
 <div class="section">
   <label>Misc Income (Tips, Bonus, Cash)</label>
+
   <input id="miscLabel" placeholder="Description (e.g. Tip)">
-  <input id="miscAmount" type="number" step="0.01" placeholder="Amount">
+
+  <input id="miscAmount"
+         type="number"
+         step="0.01"
+         placeholder="Amount">
+
+  <label>Date</label>
+  <input id="miscDate" type="date">
 
   <button class="secondary" onclick="addMiscIncome()">
     Add Misc Income
@@ -280,16 +288,25 @@ function endShift(){
 function addMiscIncome() {
   const label = $("miscLabel").value.trim();
   const amount = parseFloat($("miscAmount").value);
+  const dateValue = $("miscDate").value;
 
   if (!label || !amount || amount <= 0) {
     alert("Enter a description and amount");
     return;
   }
 
+  if (!dateValue) {
+    alert("Select a date");
+    return;
+  }
+
+  // Convert date input to ISO timestamp (local day-safe)
+  const date = new Date(dateValue + "T12:00:00").toISOString();
+
   data.misc.push({
     label,
     amount,
-    date: new Date().toISOString()
+    date
   });
 
   $("miscLabel").value = "";
@@ -399,11 +416,12 @@ function renderLog(){
   });
 
   const miscEntries = data.misc.map(m => {
-    return `<div class="log-item">
-      <strong>${m.label}</strong><br>
-      +$${m.amount.toFixed(2)} — Misc Income
-    </div>`;
-  });
+  const d = new Date(m.date).toLocaleDateString();
+  return `<div class="log-item">
+    <strong>${m.label}</strong><br>
+    +$${m.amount.toFixed(2)} — ${d}
+  </div>`;
+});
 
   $("log").innerHTML = [...miscEntries, ...jobEntries].join("");
 }
@@ -437,6 +455,9 @@ window.addEventListener("load", () => {
 });
 
 window.addEventListener("load", () => {
+const today = new Date().toISOString().split("T")[0];
+const miscDateInput = document.getElementById("miscDate");
+if (miscDateInput) miscDateInput.value = today;
 
   if (data.activeShift) {
     rate = data.activeShift.rate;
@@ -448,6 +469,8 @@ window.addEventListener("load", () => {
 
 </body>
 </html>
+
+
 
 
 
