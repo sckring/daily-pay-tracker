@@ -217,16 +217,6 @@ if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist();
 }
 
-const TEST_NOTIFICATIONS = true; // 🔁 change to false for real use
-
-async function requestNotificationPermission() {
-  if (!("Notification" in window)) return;
-
-  if (Notification.permission === "default") {
-    await Notification.requestPermission();
-  }
-}
-
 function startShift(){
   if (data.activeShift) return;
 
@@ -325,39 +315,6 @@ function getCurrentEarned(){
   return (data.activeShift.rate / 3600) * elapsedSeconds;
 }
 
-function scheduleShiftReminder(jobName) {
-  if (!("serviceWorker" in navigator)) return;
-  if (Notification.permission !== "granted") return;
-
-  const message = TEST_NOTIFICATIONS
-    ? `TEST: You've been working on ${jobName} for 1 minute`
-    : `You've been working on ${jobName} for 1 hour`;
-
-  navigator.serviceWorker.ready.then(reg => {
-    reg.showNotification("Shift Reminder", {
-      body: message,
-      icon: "icon-192.png",
-      tag: "shift-reminder"
-    });
-  }).catch(err => console.error("SW not ready", err));
-}
-
-function enableNotifications() {
-  if (!("Notification" in window)) {
-    alert("Notifications not supported on this device");
-    return;
-  }
-
-  Notification.requestPermission().then(permission => {
-    if (permission === "granted") {
-      alert("Notifications enabled!");
-      $("notifyBtn").style.display = "none";
-    } else {
-      alert("Notifications were not enabled");
-    }
-  });
-}
-
 function render(){
   currentEarned = getCurrentEarned();
 
@@ -371,10 +328,6 @@ const dailyTotal =
 
   $("current").textContent = currentEarned.toFixed(2);
   $("daily").textContent = dailyTotal.toFixed(2);
-  
-  if ("Notification" in window && Notification.permission === "granted") {
-  const btn = document.getElementById("notifyBtn");
-  if (btn) btn.style.display = "none";
 }
 
   renderGoals(dailyTotal);
@@ -393,9 +346,17 @@ function renderGoals(total){
 
 function renderWeekly(){
   const weekAgo = Date.now() - 604800000;
-  const weekJobs = data.jobs.filter(j => new Date(j.date) > weekAgo);
-  const weekMisc = data.misc.filter(m => new Data(m.date) > weekAgo);
-  const total = weekJobs.reduce((s,j)=>s+j.earned,0) + (weekMisc.reduce((s,m,)=>s+m.amount,0);
+
+  const weekJobs =
+    data.jobs.filter(j => new Date(j.date) > weekAgo);
+
+  const weekMisc =
+    data.misc.filter(m => new Date(m.date) > weekAgo);
+
+  const total =
+    weekJobs.reduce((s,j)=>s+j.earned,0) +
+    weekMisc.reduce((s,m)=>s+m.amount,0);
+
   const goal = parseFloat($("weeklyGoal").value);
 
   $("weeklyStats").innerHTML = `
