@@ -266,6 +266,15 @@ function endShift(){
   render();
 }
 
+function getCurrentEarned(){
+  if (!data.activeShift) return 0;
+
+  const elapsedSeconds =
+    (Date.now() - data.activeShift.startTime) / 1000;
+
+  return (data.activeShift.rate / 3600) * elapsedSeconds;
+}
+
 function addMiscIncome() {
   const label = $("miscLabel").value.trim();
   const amount = parseFloat($("miscAmount").value);
