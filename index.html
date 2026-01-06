@@ -223,6 +223,8 @@ if (navigator.storage && navigator.storage.persist) {
 }
 
 function startShift(){
+console.log("startTime before save:", startTime, typeof startTime);
+
   if (data.activeShift) return;
 
   const rateInput = parseFloat($("rate").value);
@@ -247,11 +249,12 @@ if (timeValue) {
 
   startTime = startDate.getTime();
 }
+data.activeShift.startTime = Number(data.activeShift.startTime);
 
 data.activeShift = {
   job,
   rate: rateInput,
-  startTime
+  startTime: Number(startTime)
 };
 
   rate = rateInput;
@@ -262,6 +265,7 @@ data.activeShift = {
 }
 
 function startTimer(){
+console.log("⏱️ Timer started");
   if (timer) return;
   timer = setInterval(() => {
   render()
@@ -296,8 +300,11 @@ function endShift(){
 function getCurrentEarned(){
   if (!data.activeShift) return 0;
 
-  const elapsedSeconds =
-    (Date.now() - data.activeShift.startTime) / 1000;
+  const start = Number(data.activeShift.startTime);
+  if (!start || isNaN(start)) return 0;
+
+  const elapsedSeconds = (Date.now() - start) / 1000;
+  if (elapsedSeconds <= 0) return 0;
 
   return (data.activeShift.rate / 3600) * elapsedSeconds;
 }
@@ -334,6 +341,7 @@ function addMiscIncome() {
 }
 
 function render(){
+console.log("render tick", currentEarned);
 console.log("RENDER TICK", Date.now());
   if (data.activeShift && !timer) {
     startTimer();
