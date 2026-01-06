@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.3</small>
+<small style="opacity:.5">v1.2.4</small>
 
 <style>
 :root {
@@ -223,44 +223,44 @@ if (navigator.storage && navigator.storage.persist) {
 }
 
 function startShift(){
-console.log("startTime before save:", startTime, typeof startTime);
-
   if (data.activeShift) return;
 
   const rateInput = parseFloat($("rate").value);
   const job = $("jobName").value;
+  const timeValue = $("startTimeInput")?.value || "";
 
-  if(!rateInput || !job) {
+  if (!rateInput || !job) {
     alert("Enter job name and rate");
     return;
   }
 
-let startTime = Date.now();
+  // ✅ DECLARE FIRST
+  let startTime = Date.now();
 
-if (timeValue) {
-  const [hours, minutes] = timeValue.split(":").map(Number);
-  const startDate = new Date();
-  startDate.setHours(hours, minutes, 0, 0);
+  // ✅ THEN MODIFY
+  if (timeValue) {
+    const [hours, minutes] = timeValue.split(":").map(Number);
+    const startDate = new Date();
+    startDate.setHours(hours, minutes, 0, 0);
 
-  // If selected time is in the future, assume yesterday
-  if (startDate.getTime() > Date.now()) {
-    startDate.setDate(startDate.getDate() - 1);
+    // If chosen time is in the future, assume yesterday
+    if (startDate.getTime() > Date.now()) {
+      startDate.setDate(startDate.getDate() - 1);
+    }
+
+    startTime = startDate.getTime();
   }
 
-  startTime = startDate.getTime();
-}
-data.activeShift.startTime = Number(data.activeShift.startTime);
-
-data.activeShift = {
-  job,
-  rate: rateInput,
-  startTime: Number(startTime)
-};
+  data.activeShift = {
+    job,
+    rate: rateInput,
+    startTime: Number(startTime)
+  };
 
   rate = rateInput;
-  
-  startTimer();
-  render(); // ✅ FORCE UI UPDATE
+
+  startTimer();   // ✅ timer now starts
+  render();       // ✅ immediate update
   save();
 }
 
