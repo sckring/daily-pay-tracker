@@ -301,10 +301,10 @@ function render(){
   currentEarned = getCurrentEarned();
 
   const miscTotal =
-    data.misc.reduce((s,m)=>s+m.amount,0);
+    data.misc.reduce((s,m)=>s + m.amount, 0);
 
   const dailyTotal =
-    data.jobs.reduce((s,j)=>s+j.earned,0) +
+    data.jobs.reduce((s,j)=>s + j.earned, 0) +
     miscTotal +
     currentEarned;
 
