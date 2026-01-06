@@ -316,6 +316,7 @@ function getCurrentEarned(){
 }
 
 function render(){
+console.log("RENDER TICK", Date.now());
   if (data.activeShift && !timer) {
     startTimer();
   }
