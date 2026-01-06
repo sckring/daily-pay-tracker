@@ -367,12 +367,12 @@ function renderLog(){
   });
 
   const miscEntries = data.misc.map(m => {
-  const d = new Date(m.date).toLocaleDateString();
-  return `<div class="log-item">
-    <strong>${m.label}</strong><br>
-    +$${m.amount.toFixed(2)} — ${d}
-  </div>`;
-});
+    const d = new Date(m.date).toLocaleDateString();
+    return `<div class="log-item">
+      <strong>${m.label}</strong><br>
+      +$${m.amount.toFixed(2)} — ${d}
+    </div>`;
+  });
 
   $("log").innerHTML = [...miscEntries, ...jobEntries].join("");
 }
