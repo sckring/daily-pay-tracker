@@ -150,6 +150,9 @@ button.danger {
 
   <label>Hourly Rate</label>
   <input id="rate" type="number" step="0.01">
+  
+  <label>Start Time</label>
+<input id="startTimeInput" type="time">
 
   <button onclick="startShift()">Start Job</button>
   <button class="secondary" onclick="endShift()">End Job</button>
@@ -233,7 +236,28 @@ function startShift(){
   data.activeShift = {
     job,
     rate: rateInput,
-    startTime: Date.now()
+    const timeValue = $("startTimeInput").value;
+
+let startTime = Date.now();
+
+if (timeValue) {
+  const [hours, minutes] = timeValue.split(":").map(Number);
+  const startDate = new Date();
+  startDate.setHours(hours, minutes, 0, 0);
+
+  // If selected time is in the future, assume yesterday
+  if (startDate.getTime() > Date.now()) {
+    startDate.setDate(startDate.getDate() - 1);
+  }
+
+  startTime = startDate.getTime();
+}
+
+data.activeShift = {
+  job,
+  rate: rateInput,
+  startTime
+};
   };
 
   rate = rateInput;
@@ -413,6 +437,12 @@ window.addEventListener("load", () => {
   const today = new Date().toISOString().split("T")[0];
   const miscDateInput = document.getElementById("miscDate");
   if (miscDateInput) miscDateInput.value = today;
+  
+  const timeInput = document.getElementById("startTimeInput");
+if (timeInput) {
+  const now = new Date();
+  timeInput.value = now.toTimeString().slice(0,5); // HH:MM
+}
 
   // Resume active shift
   if (data.activeShift) {
