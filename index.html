@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.7</small>
+<small style="opacity:.5">v1.2.8</small>
 
 <style>
 :root {
@@ -454,7 +454,7 @@ function renderWeekly(){
   `;
 }
 
-ffunction renderLog(){
+function renderLog(){
   const jobEntries = data.jobs.map((j, i) => {
     const h = Math.floor(j.seconds / 3600);
     const m = Math.floor((j.seconds % 3600) / 60);
@@ -468,9 +468,6 @@ ffunction renderLog(){
       </button>
     </div>`;
   });
-
-  $("log").innerHTML = jobEntries.join("");
-}
 
   const miscEntries = data.misc.map(m => {
     const d = new Date(m.date).toLocaleDateString();
