@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.4</small>
+<small style="opacity:.5">v1.2.5</small>
 
 <style>
 :root {
@@ -151,8 +151,17 @@ button.danger {
   <label>Hourly Rate</label>
   <input id="rate" type="number" step="0.01">
   
-  <label>Start Time</label>
-<input id="startTimeInput" type="time">
+  <button
+  id="manualTimeBtn"
+  class="secondary"
+  onclick="toggleManualTime()">
+  Enter Manual Start Time
+</button>
+
+<input
+  id="manualStartTime"
+  type="time"
+  style="display:none;">
 
   <button onclick="startShift()">Start Job</button>
   <button class="secondary" onclick="endShift()">End Job</button>
@@ -227,40 +236,43 @@ function startShift(){
 
   const rateInput = parseFloat($("rate").value);
   const job = $("jobName").value;
-  const timeValue = $("startTimeInput")?.value || "";
+  const manualTime = $("manualStartTime").value;
 
   if (!rateInput || !job) {
     alert("Enter job name and rate");
     return;
   }
 
-  // ✅ DECLARE FIRST
   let startTime = Date.now();
 
-  // ✅ THEN MODIFY
-  if (timeValue) {
-    const [hours, minutes] = timeValue.split(":").map(Number);
-    const startDate = new Date();
-    startDate.setHours(hours, minutes, 0, 0);
+  // ✅ Manual override only if user chose one
+  if (manualTime) {
+    const [h, m] = manualTime.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
 
-    // If chosen time is in the future, assume yesterday
-    if (startDate.getTime() > Date.now()) {
-      startDate.setDate(startDate.getDate() - 1);
+    // If time is in the future, assume yesterday
+    if (d.getTime() > Date.now()) {
+      d.setDate(d.getDate() - 1);
     }
 
-    startTime = startDate.getTime();
+    startTime = d.getTime();
   }
 
   data.activeShift = {
     job,
     rate: rateInput,
-    startTime: Number(startTime)
+    startTime
   };
 
   rate = rateInput;
 
-  startTimer();   // ✅ timer now starts
-  render();       // ✅ immediate update
+  // 🔄 Reset manual UI after starting
+  $("manualStartTime").value = "";
+  $("manualStartTime").style.display = "none";
+
+  startTimer();
+  render();
   save();
 }
 
@@ -307,6 +319,12 @@ function getCurrentEarned(){
   if (elapsedSeconds <= 0) return 0;
 
   return (data.activeShift.rate / 3600) * elapsedSeconds;
+}
+
+function toggleManualTime() {
+  const input = $("manualStartTime");
+  input.style.display =
+    input.style.display === "none" ? "block" : "none";
 }
 
 function addMiscIncome() {
