@@ -196,6 +196,13 @@ button.danger {
 
 <div class="section stats" id="weeklyStats"></div>
 
+<div class="small">
+  Weekly Goal Remaining: $<span id="weeklyRemain">—</span>
+</div>
+<div class="progress">
+  <div id="weeklyBar"></div>
+</div>
+
 <div class="section" id="log"></div>
 
 <button class="danger" onclick="resetDay()">Start New Day</button>
@@ -449,9 +456,19 @@ function renderWeekly(){
 
   $("weeklyStats").innerHTML = `
     Weekly Total: $${total.toFixed(2)}<br>
-    Jobs This Week: ${weekJobs.length}<br>
-    ${goal ? `Weekly Goal Remaining: $${Math.max(goal-total,0).toFixed(2)}` : ""}
+    Jobs This Week: ${weekJobs.length}
   `;
+
+  if (goal) {
+    const remain = Math.max(goal - total, 0);
+    const pct = Math.min((total / goal) * 100, 100);
+
+    $("weeklyRemain").textContent = remain.toFixed(2);
+    $("weeklyBar").style.width = pct + "%";
+  } else {
+    $("weeklyRemain").textContent = "—";
+    $("weeklyBar").style.width = "0%";
+  }
 }
 
 function renderLog(){
