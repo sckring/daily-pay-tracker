@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.11</small>
+<small style="opacity:.5">v1.2.12</small>
 
 <style>
 :root {
@@ -525,10 +525,39 @@ function save(){
 }
 
 function resetDay(){
-  if(confirm("Start a new day?")){
-    localStorage.removeItem("payTrackerV1_2");
-    location.reload();
+  if (!confirm("Start a new day? This will end any active job but keep all data.")) {
+    return;
   }
+
+  // End active shift safely
+  if (data.activeShift) {
+    const earned = getCurrentEarned();
+    const seconds =
+      (Date.now() - data.activeShift.startTime) / 1000;
+
+    data.jobs.push({
+      job: data.activeShift.job,
+      rate: data.activeShift.rate,
+      startTime: data.activeShift.startTime,
+      endTime: Date.now(),
+      seconds,
+      earned,
+      date: new Date().toISOString()
+    });
+
+    data.activeShift = null;
+  }
+
+  // Reset runtime state
+  currentEarned = 0;
+
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+
+  save();
+  render();
 }
 
 window.addEventListener("load", () => {
