@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Income History</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 520px;
+  background: #0b1220;
+  border-radius: 22px;
+  padding: 22px;
+}
+
+h1 { text-align: center; margin-top: 0 }
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 14px;
+  background: #111827;
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+button.primary {
+  background: linear-gradient(135deg,#14f1d9,#38bdf8);
+  color: #020617;
+}
+
+.section {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #1f2937;
+}
+
+.entry {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 10px;
+}
+
+.total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #22c55e;
+}
+</style>
+
+</head>
+
+<body>
+<div class="container">
+
+<h1>Income History</h1>
+
+<button class="primary" onclick="showWeekly()">Weekly View</button> <button onclick="showMonthly()">Monthly View</button> <button onclick="location.href='index.html'">⬅ Back</button>
+
+<div id="content"></div>
+
+</div>
+
+<script>
+const data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || { jobs: [], misc: [] };
+const content = document.getElementById("content");
+
+function showWeekly() {
+  const weeks = {};
+
+  [...data.jobs, ...data.misc].forEach(item => {
+    const date = new Date(item.date || item.startTime);
+    const monday = new Date(date);
+    monday.setDate(date.getDate() - date.getDay() + 1);
+    const key = monday.toISOString().slice(0,10);
+
+    if (!weeks[key]) weeks[key] = { total: 0, items: [] };
+    weeks[key].total += item.earned || item.amount;
+    weeks[key].items.push(item);
+  });
+
+  renderGroups(weeks, "Week of");
+}
+
+function showMonthly() {
+  const months = {};
+
+  [...data.jobs, ...data.misc].forEach(item => {
+    const date = new Date(item.date || item.startTime);
+    const key = date.getFullYear() + "-" + (date.getMonth()+1);
+
+    if (!months[key]) months[key] = { total: 0, items: [] };
+    months[key].total += item.earned || item.amount;
+    months[key].items.push(item);
+  });
+
+  renderGroups(months, "Month");
+}
+
+function renderGroups(groups, label) {
+  content.innerHTML = Object.keys(groups)
+    .sort((a,b)=>b.localeCompare(a))
+    .map(key => {
+      const g = groups[key];
+      return `
+        <div class="section">
+          <div class="total">${label}: ${key} — $${g.total.toFixed(2)}</div>
+          ${g.items.map(i => formatItem(i)).join("")}
+        </div>
+      `;
+    }).join("");
+}
+
+function formatItem(i) {
+  if (i.job) {
+    return `<div class="entry">${i.job}: $${i.earned.toFixed(2)}</div>`;
+  }
+  return `<div class="entry">${i.label}: +$${i.amount.toFixed(2)}</div>`;
+}
+
+showWeekly();
+</script>
+
+</body>
+</html>

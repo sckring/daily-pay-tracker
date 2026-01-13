@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.12</small>
+<small style="opacity:.5">v1.2.13</small>
 
 <style>
 :root {
@@ -207,12 +207,16 @@ button.danger {
 
 <button class="danger" onclick="resetDay()">Start New Day</button>
 
+<button class="secondary" onclick="location.href='history.html'">
+  View History
+</button>
+
 </div>
 
 <script>
-alert("SCRIPT VERSION 1.2.999 LOADED");
+//alert("SCRIPT VERSION 1.2.999 LOADED");
 
-console.log("Daily Pay Tracker v1.2.1 loaded");
+//console.log("Daily Pay Tracker v1.2.1 loaded");
 
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
