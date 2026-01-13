@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.9</small>
+<small style="opacity:.5">v1.2.10</small>
 
 <style>
 :root {
@@ -448,9 +448,17 @@ function renderWeekly(){
   const weekMisc =
     data.misc.filter(m => new Date(m.date) > weekAgo);
 
-  const total =
-    weekJobs.reduce((s,j)=>s+j.earned,0) +
-    weekMisc.reduce((s,m)=>s+m.amount,0);
+  let total =
+  weekJobs.reduce((s,j)=>s+j.earned,0) +
+  weekMisc.reduce((s,m)=>s+m.amount,0);
+
+// ✅ Add live earnings if active shift started this week
+if (data.activeShift) {
+  const start = data.activeShift.startTime;
+  if (start > weekAgo) {
+    total += currentEarned;
+  }
+}
 
   const goal = parseFloat($("weeklyGoal").value);
 
