@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.10</small>
+<small style="opacity:.5">v1.2.11</small>
 
 <style>
 :root {
@@ -356,6 +356,15 @@ function editEndTime(index) {
   render();
 }
 
+function deleteJob(index) {
+  if (!confirm("Delete this job entry?")) return;
+
+  data.jobs.splice(index, 1);
+
+  save();
+  render();
+}
+
 function getCurrentEarned(){
   if (!data.activeShift) return 0;
 
@@ -487,14 +496,20 @@ function renderLog(){
     return `<div class="log-item">
       <strong>${j.job}</strong><br>
       $${j.earned.toFixed(2)} — ${h}h ${m}m<br>
+
       <button class="secondary"
               onclick="editEndTime(${i})">
         Edit End Time
       </button>
+
+      <button class="danger"
+              onclick="deleteJob(${i})">
+        Delete Job
+      </button>
     </div>`;
   });
 
-  const miscEntries = data.misc.map(m => {
+  const miscEntries = data.misc.map((m, i) => {
     const d = new Date(m.date).toLocaleDateString();
     return `<div class="log-item">
       <strong>${m.label}</strong><br>
