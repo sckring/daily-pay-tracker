@@ -236,7 +236,8 @@ let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
 };
 
 if (!data.currentDay) {
-	data.currentDay = new Date().toISOString().split("T")[0];
+  data.currentDay = new Date().toISOString().split("T")[0];
+}
 
 if (!data.misc) data.misc = [];
 
