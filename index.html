@@ -559,18 +559,6 @@ function resetDay(){
 	render();
   }
 
-  // Reset runtime state
-  currentEarned = 0;
-
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-
-  save();
-  render();
-}
-
 window.addEventListener("load", () => {
   // Default misc date to today
   const today = new Date().toISOString().split("T")[0];
