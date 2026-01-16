@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.14</small>
+<small style="opacity:.5">v1.2.15</small>
 
 <style>
 :root {
@@ -423,6 +423,10 @@ function addMiscIncome() {
   render();
 }
 
+function isSameDay(isoDate, day) {
+	return isoDate.split("T")[0] === day;
+}
+
 function render(){
 console.log("render tick", currentEarned);
 console.log("RENDER TICK", Date.now());
@@ -544,20 +548,20 @@ function save(){
 }
 
 function resetDay(){
-  if (!confirm("Start a new day?")) {
-    return;
+  if (confirm("Start a new day?")) {
+    
+	//End active shift if one exists
+	if (data.activeShift) {
+		endShift();
+	}
 	
 	data.currentDay = new Date().toISOString().split("T")[0];
-  }
-
-  // End active shift safely
-  if (data.activeShift) {
-    endShift();
-    }
+	currentEarned = 0;
 	
 	save();
 	render();
-  }
+	}
+}
 
 window.addEventListener("load", () => {
   // Default misc date to today
