@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.16</small>
+<small style="opacity:.5">v1.2.17</small>
 
 <style>
 :root {
@@ -314,7 +314,7 @@ function endShift(){
   endTime: Date.now(),
   seconds,
   earned,
-  date: new Date().toISOString()
+  date: data.currentDay
 });
 
   data.activeShift = null;
@@ -408,7 +408,7 @@ function addMiscIncome() {
   }
 
   // Convert date input to ISO timestamp (local day-safe)
-  const date = new Date(dateValue + "T12:00:00").toISOString();
+  const date = dateValue;
 
   data.misc.push({
     label,
@@ -442,12 +442,12 @@ console.log("RENDER TICK", Date.now());
   const today = data.currentDay;
   
   const todayJobs = data.jobs.filter(j =>
-	j.date.startsWith(today)
-  );
-  
+	isSameDay(j.date, today)
+);
+
   const todayMisc = data.misc.filter(m =>
-	m.date.startsWith(today)
-  );
+	isSameDay(m.date, today)
+);
 
   const dailyTotal =
 	todayJobs.reduce((s,j)=>s + j.earned, 0) +
@@ -563,7 +563,7 @@ function resetDay(){
       endTime: Date.now(),
       seconds,
       earned,
-      date: new Date(data.activeShift.startTime).toISOString()
+      date: data.currentDay
     });
 
     data.activeShift = null;
