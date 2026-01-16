@@ -429,7 +429,7 @@ function addMiscIncome() {
 }
 
 function shiftStartedToday() {
-	if (!date.activeShift) return false;
+	if (!data.activeShift) return false;
 	const shiftDay = new Date(data.activeShift.startTime)
 		.toISOString()
 		.split("T")[0];
@@ -594,6 +594,10 @@ function resetDay(){
   save();
   render();
 }
+
+window.onerror = (msg, src, line, col, err) => {
+	alert("JS Error: " + msg);
+};
 
 window.addEventListener("load", () => {
   // Default misc date to today
