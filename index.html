@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.15</small>
+<small style="opacity:.5">v1.2.16</small>
 
 <style>
 :root {
@@ -548,19 +548,35 @@ function save(){
 }
 
 function resetDay(){
-  if (confirm("Start a new day?")) {
-    
-	//End active shift if one exists
-	if (data.activeShift) {
-		endShift();
-	}
-	
-	data.currentDay = new Date().toISOString().split("T")[0];
-	currentEarned = 0;
-	
-	save();
-	render();
-	}
+  if (!confirm("Start a new day?")) return;
+
+  // Force end any active shift WITHOUT triggering render mid-way
+  if (data.activeShift) {
+    const earned = getCurrentEarned();
+    const seconds =
+      (Date.now() - data.activeShift.startTime) / 1000;
+
+    data.jobs.push({
+      job: data.activeShift.job,
+      rate: data.activeShift.rate,
+      startTime: data.activeShift.startTime,
+      endTime: Date.now(),
+      seconds,
+      earned,
+      date: new Date(data.activeShift.startTime).toISOString()
+    });
+
+    data.activeShift = null;
+    clearInterval(timer);
+    timer = null;
+    currentEarned = 0;
+  }
+
+  // 🔑 HARD SET new day
+  data.currentDay = new Date().toISOString().split("T")[0];
+
+  save();
+  render();
 }
 
 window.addEventListener("load", () => {
