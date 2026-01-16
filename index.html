@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.13</small>
+<small style="opacity:.5">v1.2.14</small>
 
 <style>
 :root {
@@ -231,8 +231,12 @@ let currentEarned = 0;
 let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
   jobs: [],
   misc: [],
-  activeShift: null
+  activeShift: null,
+  currentDay: new Date().toISOString().split("T")[0]
 };
+
+if (!data.currentDay) {
+	data.currentDay = new Date().toISOString().split("T")[0];
 
 if (!data.misc) data.misc = [];
 
@@ -430,10 +434,20 @@ console.log("RENDER TICK", Date.now());
   const miscTotal =
     data.misc.reduce((s,m)=>s + m.amount, 0);
 
+  const today = data.currentDay;
+  
+  const todayJobs = data.jobs.filter(j =>
+	j.date.startsWith(today)
+  );
+  
+  const todayMisc = data.misc.filter(m =>
+	m.date.startsWith(today)
+  );
+
   const dailyTotal =
-    data.jobs.reduce((s,j)=>s + j.earned, 0) +
-    miscTotal +
-    currentEarned;
+	todayJobs.reduce((s,j)=>s + j.earned, 0) +
+	todayMisc.reduce((s,m)=>s + m.amount, 0) +
+	currentEarned;
 
   $("current").textContent = currentEarned.toFixed(2);
   $("daily").textContent = dailyTotal.toFixed(2);
@@ -529,27 +543,19 @@ function save(){
 }
 
 function resetDay(){
-  if (!confirm("Start a new day? This will end any active job but keep all data.")) {
+  if (!confirm("Start a new day?")) {
     return;
+	
+	data.currentDay = new Date().toISOString().split("T")[0];
   }
 
   // End active shift safely
   if (data.activeShift) {
-    const earned = getCurrentEarned();
-    const seconds =
-      (Date.now() - data.activeShift.startTime) / 1000;
-
-    data.jobs.push({
-      job: data.activeShift.job,
-      rate: data.activeShift.rate,
-      startTime: data.activeShift.startTime,
-      endTime: Date.now(),
-      seconds,
-      earned,
-      date: new Date().toISOString()
-    });
-
-    data.activeShift = null;
+    endShift();
+    }
+	
+	save();
+	render();
   }
 
   // Reset runtime state
