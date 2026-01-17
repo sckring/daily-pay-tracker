@@ -316,7 +316,8 @@ function endShift(){
   endTime: Date.now(),
   seconds,
   earned,
-  date: data.currentDay
+  date: data.currentDay,
+  dayId: data.dayId
 });
 
   data.activeShift = null;
@@ -415,7 +416,7 @@ function addMiscIncome() {
   data.misc.push({
     label,
     amount,
-    date
+    date,
 	dayId: data.dayId
   });
 
