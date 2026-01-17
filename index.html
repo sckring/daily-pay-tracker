@@ -232,7 +232,8 @@ let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
   jobs: [],
   misc: [],
   activeShift: null,
-  currentDay: new Date().toISOString().split("T")[0]
+  currentDay: new Date().toISOString().split("T")[0],
+  dayId: Date.now()
 };
 
 if (!data.currentDay) {
@@ -263,6 +264,9 @@ function startShift(){
     alert("Enter job name and rate");
     return;
   }
+
+date: data.currentDay,
+dayId: data.dayId
 
   let startTime = Date.now();
 
@@ -419,6 +423,7 @@ function addMiscIncome() {
     label,
     amount,
     date
+	dayId: data.dayId
   });
 
   $("miscLabel").value = "";
@@ -454,12 +459,12 @@ console.log("RENDER TICK", Date.now());
 
   const today = data.currentDay;
   
-  const todayJobs = data.jobs.filter(j =>
-	isSameDay(j.date, today)
+const todayJobs = data.jobs.filter(j =>
+  j.dayId === data.dayId
 );
 
-  const todayMisc = data.misc.filter(m =>
-	isSameDay(m.date, today)
+const todayMisc = data.misc.filter(m =>
+  m.dayId === data.dayId
 );
 
   const liveEarned =
@@ -590,6 +595,8 @@ function resetDay(){
 
   // 🔑 HARD SET new day
   data.currentDay = new Date().toISOString().split("T")[0];
+  data.dayId = Date.now();
+  currentEarned = 0;
 
   save();
   render();
