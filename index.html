@@ -248,13 +248,11 @@ if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist();
 }
 
-function startShift(){
-	if (data.activeShift) {
-  alert("You already have an active job.");
-  return;
-}
-
-  if (data.activeShift) return;
+function startShift() {
+  if (data.activeShift) {
+    alert("You already have an active job.");
+    return;
+  }
 
   const rateInput = parseFloat($("rate").value);
   const job = $("jobName").value;
@@ -265,18 +263,14 @@ function startShift(){
     return;
   }
 
-date: data.currentDay,
-dayId: data.dayId;
-
   let startTime = Date.now();
 
-  // ✅ Manual override only if user chose one
+  // Manual override
   if (manualTime) {
     const [h, m] = manualTime.split(":").map(Number);
     const d = new Date();
     d.setHours(h, m, 0, 0);
 
-    // If time is in the future, assume yesterday
     if (d.getTime() > Date.now()) {
       d.setDate(d.getDate() - 1);
     }
@@ -292,7 +286,6 @@ dayId: data.dayId;
 
   rate = rateInput;
 
-  // 🔄 Reset manual UI after starting
   $("manualStartTime").value = "";
   $("manualStartTime").style.display = "none";
 
