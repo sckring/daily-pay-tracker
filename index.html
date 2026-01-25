@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.21</small>
+<small style="opacity:.5">v1.2.22</small>
 
 <style>
 :root {
@@ -235,6 +235,10 @@ let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
   currentDay: new Date().toISOString().split("T")[0],
   dayId: Date.now()
 };
+
+if (data.dailyGoalMet === undefined) {
+  data.dailyGoalMet = false;
+}
 
 if (!data.currentDay) {
   data.currentDay = new Date().toISOString().split("T")[0];
@@ -478,11 +482,25 @@ const todayMisc = data.misc.filter(m =>
   save();
 }
 
-function renderGoals(total){
+function renderGoals(total) {
   const d = parseFloat($("dailyGoal").value);
-  if(d){
-    $("dailyRemain").textContent = Math.max(d-total,0).toFixed(2);
-    $("dailyBar").style.width = Math.min((total/d)*100,100)+"%";
+
+  if (!d) return;
+
+  const remaining = Math.max(d - total, 0);
+  const pct = Math.min((total / d) * 100, 100);
+
+  $("dailyRemain").textContent = remaining.toFixed(2);
+  $("dailyBar").style.width = pct + "%";
+
+  // 🎉 GOAL MET POPUP (fires once per day)
+  if (total >= d && !data.dailyGoalMet) {
+    data.dailyGoalMet = true;
+    save();
+
+    setTimeout(() => {
+      alert("🎉 Daily goal met! Great work!");
+    }, 200);
   }
 }
 
@@ -590,6 +608,7 @@ function resetDay(){
   // 🔑 HARD SET new day
   data.currentDay = new Date().toISOString().split("T")[0];
   data.dayId = Date.now();
+  data.dailyGoalMet = false;
   currentEarned = 0;
 
   save();
