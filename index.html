@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.25</small>
+<small style="opacity:.5">v1.2.26</small>
 
 <style>
 :root {
@@ -266,7 +266,7 @@ function startShift() {
     return;
   }
 
-  const rateInput = parseFloat($("rate").value);
+  const rateInput = Number($("rate").value);
   const job = $("jobName").value;
   const manualTime = $("manualStartTime").value;
 
@@ -402,13 +402,17 @@ function deleteJob(index) {
 function getCurrentEarned() {
   if (!data.activeShift) return 0;
 
-  const seconds =
-    (Date.now() - data.activeShift.startTime) / 1000;
+  const start = Number(data.activeShift.startTime);
+  const rate = Number(data.activeShift.rate);
 
-  const hourly =
-    data.activeShift.rate * data.activeShift.multiplier;
+  if (!start || !rate || isNaN(start) || isNaN(rate)) {
+    return 0;
+  }
 
-  return (seconds / 3600) * hourly;
+  const elapsedSeconds = (Date.now() - start) / 1000;
+  if (elapsedSeconds <= 0) return 0;
+
+  return (rate / 3600) * elapsedSeconds;
 }
 
 function toggleManualTime() {
@@ -646,16 +650,10 @@ window.addEventListener("load", () => {
   const today = new Date().toISOString().split("T")[0];
   const miscDateInput = document.getElementById("miscDate");
   if (miscDateInput) miscDateInput.value = today;
-  
-  const timeInput = document.getElementById("startTimeInput");
-if (timeInput) {
-  const now = new Date();
-  timeInput.value = now.toTimeString().slice(0,5); // HH:MM
-}
 
-  // Resume active shift
+  // Resume active shift safely
   if (data.activeShift) {
-    rate = data.activeShift.rate;
+    rate = Number(data.activeShift.rate);
     startTimer();
   }
 
