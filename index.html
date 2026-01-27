@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.22</small>
+<small style="opacity:.5">v1.2.23</small>
 
 <style>
 :root {
@@ -158,6 +158,14 @@ button.danger {
   Enter Manual Start Time
 </button>
 
+<label>Pay Type</label>
+<select id="multiplier">
+  <option value="1">Normal</option>
+  <option value="1.5">Time & Half</option>
+  <option value="2">Double Time</option>
+  <option value="3">Triple Time</option>
+</select>
+
 <input
   id="manualStartTime"
   type="time"
@@ -258,6 +266,7 @@ function startShift() {
     return;
   }
 
+  const multiplier = parseFloat($("multiplier").value) || 1;
   const rateInput = parseFloat($("rate").value);
   const job = $("jobName").value;
   const manualTime = $("manualStartTime").value;
@@ -285,6 +294,7 @@ function startShift() {
   data.activeShift = {
     job,
     rate: rateInput,
+	multiplier,
     startTime
   };
 
@@ -292,6 +302,7 @@ function startShift() {
 
   $("manualStartTime").value = "";
   $("manualStartTime").style.display = "none";
+  $("multiplier").value = "1";
 
   startTimer();
   render();
@@ -306,29 +317,39 @@ console.log("⏱️ Timer started");
   }, 1000);
 }
 
-function endShift(){
-  if (!data.activeShift) return;
+function endShift() {
+  if (!data.activeShift) {
+    alert("No active job to end.");
+    return;
+  }
 
-  const earned = getCurrentEarned();
+  const now = Date.now();
+
   const seconds =
-    (Date.now() - data.activeShift.startTime) / 1000;
+    (now - data.activeShift.startTime) / 1000;
+
+  const hourly =
+    data.activeShift.rate * data.activeShift.multiplier;
+
+  const earned =
+    (seconds / 3600) * hourly;
 
   data.jobs.push({
-  job: data.activeShift.job,
-  rate: data.activeShift.rate,
-  startTime: data.activeShift.startTime,
-  endTime: Date.now(),
-  seconds,
-  earned,
-  date: data.currentDay,
-  dayId: data.dayId
-});
+    job: data.activeShift.job,
+    rate: data.activeShift.rate,
+    multiplier: data.activeShift.multiplier,
+    startTime: data.activeShift.startTime,
+    endTime: now,
+    seconds,
+    earned,
+    date: data.currentDay
+  });
 
+  // 🧹 Clear active shift + timer
   data.activeShift = null;
-  currentEarned = 0;
-
   clearInterval(timer);
   timer = null;
+  currentEarned = 0;
 
   save();
   render();
@@ -381,16 +402,16 @@ function deleteJob(index) {
   render();
 }
 
-function getCurrentEarned(){
+function getCurrentEarned() {
   if (!data.activeShift) return 0;
 
-  const start = Number(data.activeShift.startTime);
-  if (!start || isNaN(start)) return 0;
+  const seconds =
+    (Date.now() - data.activeShift.startTime) / 1000;
 
-  const elapsedSeconds = (Date.now() - start) / 1000;
-  if (elapsedSeconds <= 0) return 0;
+  const hourly =
+    data.activeShift.rate * data.activeShift.multiplier;
 
-  return (data.activeShift.rate / 3600) * elapsedSeconds;
+  return (seconds / 3600) * hourly;
 }
 
 function toggleManualTime() {
@@ -564,6 +585,12 @@ function renderLog(){
       </button>
     </div>`;
   });
+  
+  const label =
+  j.multiplier === 1 ? "Normal" :
+  j.multiplier === 1.5 ? "Time & Half" :
+  j.multiplier === 2 ? "Double" :
+  "Triple";
 
   const miscEntries = data.misc.map((m, i) => {
     const d = new Date(m.date).toLocaleDateString();
