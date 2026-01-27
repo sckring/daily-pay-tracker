@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.24</small>
+<small style="opacity:.5">v1.2.25</small>
 
 <style>
 :root {
@@ -562,39 +562,37 @@ function renderWeekly() {
 }
 
 
-function renderLog(){
-  const jobEntries = data.jobs.map((j, i) => {
-    const h = Math.floor(j.seconds / 3600);
-    const m = Math.floor((j.seconds % 3600) / 60);
+function renderLog() {
+  const jobEntries = data.jobs.map((job, i) => {
+    const h = Math.floor(job.seconds / 3600);
+    const m = Math.floor((job.seconds % 3600) / 60);
 
-    return `<div class="log-item">
-      <strong>${j.job}</strong><br>
-      $${j.earned.toFixed(2)} — ${h}h ${m}m<br>
+    return `
+      <div class="log-item">
+        <strong>${job.job}</strong><br>
+        $${job.earned.toFixed(2)} — ${h}h ${m}m<br>
 
-      <button class="secondary"
-              onclick="editEndTime(${i})">
-        Edit End Time
-      </button>
+        <button class="secondary"
+                onclick="editEndTime(${i})">
+          Edit End Time
+        </button>
 
-      <button class="danger"
-              onclick="deleteJob(${i})">
-        Delete Job
-      </button>
-    </div>`;
+        <button class="danger"
+                onclick="deleteJob(${i})">
+          Delete Job
+        </button>
+      </div>
+    `;
   });
-  
-  const label =
-  j.multiplier === 1 ? "Normal" :
-  j.multiplier === 1.5 ? "Time & Half" :
-  j.multiplier === 2 ? "Double" :
-  "Triple";
 
-  const miscEntries = data.misc.map((m, i) => {
-    const d = new Date(m.date).toLocaleDateString();
-    return `<div class="log-item">
-      <strong>${m.label}</strong><br>
-      +$${m.amount.toFixed(2)} — ${d}
-    </div>`;
+  const miscEntries = data.misc.map((misc) => {
+    const d = new Date(misc.date).toLocaleDateString();
+    return `
+      <div class="log-item">
+        <strong>${misc.label}</strong><br>
+        +$${misc.amount.toFixed(2)} — ${d}
+      </div>
+    `;
   });
 
   $("log").innerHTML = [...miscEntries, ...jobEntries].join("");
