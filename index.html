@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.23</small>
+<small style="opacity:.5">v1.2.24</small>
 
 <style>
 :root {
@@ -266,7 +266,6 @@ function startShift() {
     return;
   }
 
-  const multiplier = parseFloat($("multiplier").value) || 1;
   const rateInput = parseFloat($("rate").value);
   const job = $("jobName").value;
   const manualTime = $("manualStartTime").value;
@@ -278,7 +277,6 @@ function startShift() {
 
   let startTime = Date.now();
 
-  // Manual override
   if (manualTime) {
     const [h, m] = manualTime.split(":").map(Number);
     const d = new Date();
@@ -294,7 +292,6 @@ function startShift() {
   data.activeShift = {
     job,
     rate: rateInput,
-	multiplier,
     startTime
   };
 
@@ -302,12 +299,12 @@ function startShift() {
 
   $("manualStartTime").value = "";
   $("manualStartTime").style.display = "none";
-  $("multiplier").value = "1";
 
   startTimer();
   render();
   save();
 }
+
 
 function startTimer(){
 console.log("⏱️ Timer started");
@@ -525,26 +522,25 @@ function renderGoals(total) {
   }
 }
 
-function renderWeekly(){
+function renderWeekly() {
   const weekAgo = Date.now() - 604800000;
 
-  const weekJobs =
-    data.jobs.filter(j => new Date(j.date) > weekAgo);
+  const weekJobs = data.jobs.filter(j =>
+    j.startTime >= weekAgo
+  );
 
-  const weekMisc =
-    data.misc.filter(m => new Date(m.date) > weekAgo);
+  const weekMisc = data.misc.filter(m =>
+    new Date(m.date).getTime() >= weekAgo
+  );
 
   let total =
-  weekJobs.reduce((s,j)=>s+j.earned,0) +
-  weekMisc.reduce((s,m)=>s+m.amount,0);
+    weekJobs.reduce((s, j) => s + j.earned, 0) +
+    weekMisc.reduce((s, m) => s + m.amount, 0);
 
-// ✅ Add live earnings if active shift started this week
-if (data.activeShift) {
-  const start = data.activeShift.startTime;
-  if (start > weekAgo) {
+  // Add live earnings
+  if (data.activeShift && data.activeShift.startTime >= weekAgo) {
     total += currentEarned;
   }
-}
 
   const goal = parseFloat($("weeklyGoal").value);
 
@@ -564,6 +560,7 @@ if (data.activeShift) {
     $("weeklyBar").style.width = "0%";
   }
 }
+
 
 function renderLog(){
   const jobEntries = data.jobs.map((j, i) => {
