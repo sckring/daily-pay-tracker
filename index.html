@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.27</small>
+<small style="opacity:.5">v1.2.28</small>
 
 <style>
 :root {
@@ -266,9 +266,10 @@ function startShift() {
     return;
   }
 
-  const rateInput = Number($("rate").value);
+  const rateInput = parseFloat($("rate").value);
   const job = $("jobName").value;
   const manualTime = $("manualStartTime").value;
+  const multiplier = parseFloat($("payMultiplier").value) || 1;
 
   if (!rateInput || !job) {
     alert("Enter job name and rate");
@@ -281,24 +282,18 @@ function startShift() {
     const [h, m] = manualTime.split(":").map(Number);
     const d = new Date();
     d.setHours(h, m, 0, 0);
-
-    if (d.getTime() > Date.now()) {
-      d.setDate(d.getDate() - 1);
-    }
-
+    if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
     startTime = d.getTime();
   }
 
   data.activeShift = {
     job,
     rate: rateInput,
+    multiplier,   // ✅ NEW
     startTime
   };
 
   rate = rateInput;
-
-  $("manualStartTime").value = "";
-  $("manualStartTime").style.display = "none";
 
   startTimer();
   render();
@@ -315,38 +310,29 @@ console.log("⏱️ Timer started");
 }
 
 function endShift() {
-  if (!data.activeShift) {
-    alert("No active job to end.");
-    return;
-  }
+  if (!data.activeShift) return;
 
-  const now = Date.now();
-
+  const earned = getCurrentEarned();
   const seconds =
-    (now - data.activeShift.startTime) / 1000;
-
-  const hourly =
-    data.activeShift.rate * data.activeShift.multiplier;
-
-  const earned =
-    (seconds / 3600) * hourly;
+    (Date.now() - data.activeShift.startTime) / 1000;
 
   data.jobs.push({
     job: data.activeShift.job,
     rate: data.activeShift.rate,
-    multiplier: data.activeShift.multiplier,
+    multiplier: data.activeShift.multiplier || 1, // ✅ saved
     startTime: data.activeShift.startTime,
-    endTime: now,
+    endTime: Date.now(),
     seconds,
     earned,
-    date: data.currentDay
+    date: data.currentDay,
+    dayId: data.dayId
   });
 
-  // 🧹 Clear active shift + timer
   data.activeShift = null;
+  currentEarned = 0;
+
   clearInterval(timer);
   timer = null;
-  currentEarned = 0;
 
   save();
   render();
@@ -403,16 +389,15 @@ function getCurrentEarned() {
   if (!data.activeShift) return 0;
 
   const start = Number(data.activeShift.startTime);
-  const rate = Number(data.activeShift.rate);
-
-  if (!start || !rate || isNaN(start) || isNaN(rate)) {
-    return 0;
-  }
+  if (!start) return 0;
 
   const elapsedSeconds = (Date.now() - start) / 1000;
   if (elapsedSeconds <= 0) return 0;
 
-  return (rate / 3600) * elapsedSeconds;
+  const rate = data.activeShift.rate;
+  const multiplier = data.activeShift.multiplier || 1;
+
+  return (rate * multiplier / 3600) * elapsedSeconds;
 }
 
 function toggleManualTime() {
@@ -566,17 +551,22 @@ function renderWeekly() {
 }
 
 
-function renderLog() {
+ffunction renderLog() {
   const jobEntries = data.jobs.map((job, i) => {
-    const seconds = Number(job.seconds || 0);
-    const earned = Number(job.earned || 0);
+    const seconds = job.seconds || 0;
+    const earned = job.earned || 0;
+    const rate = job.rate || 0;
+    const multiplier = job.multiplier || 1;
 
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
 
+    const multLabel =
+      multiplier !== 1 ? ` (${multiplier}×)` : "";
+
     return `
       <div class="log-item">
-        <strong>${job.job}</strong><br>
+        <strong>${job.job}${multLabel}</strong><br>
         $${earned.toFixed(2)} — ${h}h ${m}m<br>
 
         <button class="secondary"
@@ -593,7 +583,7 @@ function renderLog() {
   });
 
   const miscEntries = data.misc.map((misc) => {
-    const amount = Number(misc.amount || 0);
+    const amount = misc.amount || 0;
     const d = new Date(misc.date).toLocaleDateString();
 
     return `
