@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.29</small>
+<small style="opacity:.5">v1.2.30</small>
 
 <style>
 :root {
@@ -261,45 +261,71 @@ if (navigator.storage && navigator.storage.persist) {
 }
 
 function startShift() {
+  // 🚫 Prevent double shifts
   if (data.activeShift) {
     alert("You already have an active job.");
     return;
   }
 
-  const rateInput = parseFloat($("rate").value);
-  const job = $("jobName").value;
-  const manualTime = $("manualStartTime").value;
-  const multiplier = parseFloat($("payMultiplier").value) || 1;
+  const jobInput = $("jobName");
+  const rateInput = $("rate");
+  const manualInput = $("manualStartTime");
+  const multiplierInput = $("multiplier");
 
-  if (!rateInput || !job) {
-    alert("Enter job name and rate");
+  // 🛑 Safety check
+  if (!jobInput || !rateInput) {
+    alert("Critical error: missing input fields");
+    return;
+  }
+
+  const job = jobInput.value.trim();
+  const rate = parseFloat(rateInput.value);
+  const multiplier = multiplierInput
+    ? parseFloat(multiplierInput.value)
+    : 1;
+
+  if (!job || !rate || rate <= 0) {
+    alert("Enter a valid job name and hourly rate");
     return;
   }
 
   let startTime = Date.now();
 
-  if (manualTime) {
-    const [h, m] = manualTime.split(":").map(Number);
+  // ⏱ Manual start time override
+  if (manualInput && manualInput.value) {
+    const [h, m] = manualInput.value.split(":").map(Number);
     const d = new Date();
     d.setHours(h, m, 0, 0);
-    if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
+
+    // If future time, assume yesterday
+    if (d.getTime() > Date.now()) {
+      d.setDate(d.getDate() - 1);
+    }
+
     startTime = d.getTime();
   }
 
+  // ✅ Start shift
   data.activeShift = {
     job,
-    rate: rateInput,
-    multiplier,   // ✅ NEW
-    startTime
+    rate,
+    multiplier,
+    startTime,
+    dayId: data.dayId
   };
 
-  rate = rateInput;
+  // 🔄 Reset UI
+  if (manualInput) {
+    manualInput.value = "";
+    manualInput.style.display = "none";
+  }
+
+  currentEarned = 0;
 
   startTimer();
   render();
   save();
 }
-
 
 function startTimer(){
 console.log("⏱️ Timer started");
