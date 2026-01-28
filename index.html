@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.26</small>
+<small style="opacity:.5">v1.2.27</small>
 
 <style>
 :root {
@@ -568,13 +568,16 @@ function renderWeekly() {
 
 function renderLog() {
   const jobEntries = data.jobs.map((job, i) => {
-    const h = Math.floor(job.seconds / 3600);
-    const m = Math.floor((job.seconds % 3600) / 60);
+    const seconds = Number(job.seconds || 0);
+    const earned = Number(job.earned || 0);
+
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
 
     return `
       <div class="log-item">
         <strong>${job.job}</strong><br>
-        $${job.earned.toFixed(2)} — ${h}h ${m}m<br>
+        $${earned.toFixed(2)} — ${h}h ${m}m<br>
 
         <button class="secondary"
                 onclick="editEndTime(${i})">
@@ -590,11 +593,13 @@ function renderLog() {
   });
 
   const miscEntries = data.misc.map((misc) => {
+    const amount = Number(misc.amount || 0);
     const d = new Date(misc.date).toLocaleDateString();
+
     return `
       <div class="log-item">
         <strong>${misc.label}</strong><br>
-        +$${misc.amount.toFixed(2)} — ${d}
+        +$${amount.toFixed(2)} — ${d}
       </div>
     `;
   });
