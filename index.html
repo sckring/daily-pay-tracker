@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.30</small>
+<small style="opacity:.5">v1.2.31</small>
 
 <style>
 :root {
@@ -248,6 +248,10 @@ if (data.dailyGoalMet === undefined) {
   data.dailyGoalMet = false;
 }
 
+if (data.weeklyGoalMet === undefined) {
+  data.weeklyGoalMet = false;
+}
+
 if (!data.currentDay) {
   data.currentDay = new Date().toISOString().split("T")[0];
 }
@@ -258,6 +262,17 @@ const $ = id => document.getElementById(id);
 
 if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist();
+}
+
+if (!data.weekId) {
+  data.weekId = getWeekId();
+}
+
+function getWeekId() {
+  const d = new Date();
+  const firstDayOfWeek = new Date(d.setDate(d.getDate() - d.getDay()));
+  firstDayOfWeek.setHours(0,0,0,0);
+  return firstDayOfWeek.getTime();
 }
 
 function startShift() {
@@ -538,6 +553,14 @@ function renderGoals(total) {
 }
 
 function renderWeekly() {
+
+const currentWeekId = getWeekId();
+
+if (data.weekId !== currentWeekId) {
+  data.weekId = currentWeekId;
+  data.weeklyGoalMet = false;
+  save();
+}
   const weekAgo = Date.now() - 604800000;
 
   const weekJobs = data.jobs.filter(j =>
@@ -574,6 +597,15 @@ function renderWeekly() {
     $("weeklyRemain").textContent = "—";
     $("weeklyBar").style.width = "0%";
   }
+  
+  if (goal && total >= goal && !data.weeklyGoalMet) {
+  data.weeklyGoalMet = true;
+  save();
+
+  setTimeout(() => {
+    alert("🏆 Weekly goal met! You're crushing it!");
+  }, 200);
+}
 }
 
 
