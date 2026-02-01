@@ -1,6 +1,6 @@
 {
-  "name": "Daily Pay Tracker",
-  "short_name": "Pay Tracker",
+  "name": "HourlyXP",
+  "short_name": "HourlyXP",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#020617",

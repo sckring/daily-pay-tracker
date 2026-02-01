@@ -4,11 +4,11 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14f1d9">
 <meta charset="UTF-8">
-<title>Daily Pay Tracker v1.2</title>
+<title>HourlyXP</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small style="opacity:.5">v1.2.31</small>
+<small style="opacity:.5">HourlyXP v1.3.0</small>
 
 <style>
 :root {
@@ -136,7 +136,7 @@ button.danger {
 <body>
 <div class="container">
 
-<h1>Daily Pay Tracker</h1>
+<h1>HourlyXP</h1>
 
 <label>Daily Goal (optional)</label>
 <input id="dailyGoal" type="number">
@@ -232,11 +232,12 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
+const STORAGE_KEY = "hourlyXP_v1";
 let timer = null;
 let rate = 0;
 let currentEarned = 0;
 
-let data = JSON.parse(localStorage.getItem("payTrackerV1_2")) || {
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   jobs: [],
   misc: [],
   activeShift: null,
@@ -656,7 +657,7 @@ function renderLog() {
 }
 
 function save(){
-  localStorage.setItem("payTrackerV1_2", JSON.stringify(data));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 function resetDay(){
