@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.3.4</small>
+<small id="version">HourlyXP v1.4.0</small>
 
 <style>
 :root {
@@ -229,6 +229,10 @@ header {
 
 <button class="secondary" onclick="location.href='history.html'">
   View History
+</button>
+
+<button class="secondary" onclick="notify.requestPermission()">
+  Enable Notifications
 </button>
 
 </div>
@@ -562,9 +566,7 @@ function renderGoals(total) {
     data.dailyGoalMet = true;
     save();
 
-    setTimeout(() => {
-      alert("🎉 Daily goal met! Great work!");
-    }, 200);
+    notify.dailyGoal(total);
   }
 }
 
@@ -618,9 +620,7 @@ if (data.weekId !== currentWeekId) {
   data.weeklyGoalMet = true;
   save();
 
-  setTimeout(() => {
-    alert("🏆 Weekly goal met! You're crushing it!");
-  }, 200);
+  notify.weeklyGoal(total);
 }
 }
 
@@ -733,11 +733,61 @@ function resetDay(){
   render();
 }
 
+const notify = {
+  enabled: false,
+  permission: "default",
+
+  init() {
+    if (!("Notification" in window)) return;
+    this.permission = Notification.permission;
+    this.enabled = this.permission === "granted";
+  },
+
+  async requestPermission() {
+    if (!("Notification" in window)) {
+      alert("Notifications not supported on this device.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    this.permission = permission;
+    this.enabled = permission === "granted";
+
+    if (this.enabled) {
+      this.send("HourlyXP Notifications Enabled ✅");
+    }
+  },
+
+  send(title, options = {}) {
+    if (!this.enabled) return;
+
+    new Notification(title, {
+      icon: "icon-192.png", // must match your manifest icon path
+      badge: "icon-192.png",
+      ...options
+    });
+  },
+
+  dailyGoal(amount) {
+    this.send("🎉 Daily Goal Met!", {
+      body: `You earned $${amount.toFixed(2)} today!`
+    });
+  },
+
+  weeklyGoal(amount) {
+    this.send("🏆 Weekly Goal Crushed!", {
+      body: `Weekly total: $${amount.toFixed(2)}`
+    });
+  }
+};
+
 window.onerror = (msg, src, line, col, err) => {
 	alert("JS Error: " + msg);
 };
 
 window.addEventListener("load", () => {
+notify.init();
+
   // Default misc date to today
   const today = new Date().toISOString().split("T")[0];
   const miscDateInput = document.getElementById("miscDate");
