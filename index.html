@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.0</small>
+<small id="version">HourlyXP v1.4.1</small>
 
 <style>
 :root {
@@ -256,6 +256,10 @@ let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   currentDay: new Date().toISOString().split("T")[0],
   dayId: Date.now()
 };
+
+if (data.notificationPrompted === undefined) {
+  data.notificationPrompted = false;
+}
 
 if (data.dailyGoalMet === undefined) {
   data.dailyGoalMet = false;
@@ -781,12 +785,36 @@ const notify = {
   }
 };
 
+function maybeShowNotificationPrompt() {
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission === "default" &&
+      !data.notificationPrompted) {
+    $("notifyModal").style.display = "flex";
+  }
+}
+
+function acceptNotifications() {
+  $("notifyModal").style.display = "none";
+  data.notificationPrompted = true;
+  save();
+
+  notify.requestPermission();
+}
+
+function dismissNotifications() {
+  $("notifyModal").style.display = "none";
+  data.notificationPrompted = true;
+  save();
+}
+
 window.onerror = (msg, src, line, col, err) => {
 	alert("JS Error: " + msg);
 };
 
 window.addEventListener("load", () => {
-notify.init();
+	notify.init();
+	maybeShowNotificationPrompt();
 
   // Default misc date to today
   const today = new Date().toISOString().split("T")[0];
@@ -798,10 +826,40 @@ notify.init();
     rate = Number(data.activeShift.rate);
     startTimer();
   }
-
+	
   render();
 });
 </script>
+
+<div id="notifyModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:blur(6px);
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+">
+  <div style="
+    background:#0b1220;
+    padding:24px;
+    border-radius:18px;
+    width:90%;
+    max-width:340px;
+    text-align:center;
+  ">
+    <h3 style="margin-top:0;">Enable Notifications?</h3>
+    <p style="color:#94a3b8; font-size:14px;">
+      Get notified when you hit your goals.
+    </p>
+
+    <button onclick="acceptNotifications()">Enable</button>
+    <button class="secondary" onclick="dismissNotifications()">
+      Not Now
+    </button>
+  </div>
+</div>
 
 </body>
 </html>
