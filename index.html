@@ -541,6 +541,9 @@ function renderLiveEarnings() {
     currentEarned;
 
   $("daily").textContent = dailyTotal.toFixed(2);
+
+  // ✅ ADD THIS LINE
+  renderGoals(dailyTotal);
 }
 
 function renderGoals(total) {
