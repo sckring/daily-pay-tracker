@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.3.2</small>
+<small id="version">HourlyXP v1.3.3</small>
 
 <style>
 :root {
@@ -234,9 +234,6 @@ header {
 </div>
 
 <script>
-//alert("SCRIPT VERSION 1.2.999 LOADED");
-
-//console.log("Daily Pay Tracker v1.2.1 loaded");
 
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
@@ -246,7 +243,6 @@ document.addEventListener("visibilitychange", () => {
 
 const STORAGE_KEY = "hourlyXP_v1";
 let timer = null;
-let rate = 0;
 let currentEarned = 0;
 
 let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
@@ -356,7 +352,7 @@ function startShift() {
 }
 
 function startTimer(){
-console.log("⏱️ Timer started");
+
   if (timer) return;
 timer = setInterval(() => {
   currentEarned = getCurrentEarned();
@@ -367,21 +363,16 @@ timer = setInterval(() => {
 function endShift() {
   if (!data.activeShift) return;
 
-  const earned = getCurrentEarned();
-  const seconds =
-    (Date.now() - data.activeShift.startTime) / 1000;
-
-  data.jobs.push({
+  const entry = createJobEntry({
     job: data.activeShift.job,
     rate: data.activeShift.rate,
-    multiplier: data.activeShift.multiplier || 1, // ✅ saved
+    multiplier: data.activeShift.multiplier,
     startTime: data.activeShift.startTime,
     endTime: Date.now(),
-    seconds,
-    earned,
-    date: data.currentDay,
     dayId: data.dayId
   });
+
+  data.jobs.push(entry);
 
   data.activeShift = null;
   currentEarned = 0;
@@ -389,7 +380,6 @@ function endShift() {
   clearInterval(timer);
   timer = null;
 
-  createJobEntry({ job, rate, multiplier, startTime, endTime, dayId });
   save();
   render();
 }
@@ -713,25 +703,22 @@ function resetDay(){
 
   // Force end any active shift WITHOUT triggering render mid-way
   if (data.activeShift) {
-    const earned = getCurrentEarned();
-    const seconds =
-      (Date.now() - data.activeShift.startTime) / 1000;
+  const entry = createJobEntry({
+    job: data.activeShift.job,
+    rate: data.activeShift.rate,
+    multiplier: data.activeShift.multiplier,
+    startTime: data.activeShift.startTime,
+    endTime: Date.now(),
+    dayId: data.dayId
+  });
 
-    data.jobs.push({
-      job: data.activeShift.job,
-      rate: data.activeShift.rate,
-      startTime: data.activeShift.startTime,
-      endTime: Date.now(),
-      seconds,
-      earned,
-      date: data.currentDay
-    });
+  data.jobs.push(entry);
 
-    data.activeShift = null;
-    clearInterval(timer);
-    timer = null;
-    currentEarned = 0;
-  }
+  data.activeShift = null;
+  clearInterval(timer);
+  timer = null;
+  currentEarned = 0;
+}
 
   // 🔑 HARD SET new day
   data.currentDay = new Date().toISOString().split("T")[0];
@@ -739,7 +726,6 @@ function resetDay(){
   data.dailyGoalMet = false;
   currentEarned = 0;
 
-  createJobEntry({ job, rate, multiplier, startTime, endTime, dayId });
   save();
   render();
 }
