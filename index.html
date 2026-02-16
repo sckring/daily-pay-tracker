@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.3.1</small>
+<small id="version">HourlyXP v1.3.2</small>
 
 <style>
 :root {
@@ -358,9 +358,10 @@ function startShift() {
 function startTimer(){
 console.log("⏱️ Timer started");
   if (timer) return;
-  timer = setInterval(() => {
-  render()
-  }, 1000);
+timer = setInterval(() => {
+  currentEarned = getCurrentEarned();
+  renderLiveEarnings();
+}, 1000);
 }
 
 function endShift() {
@@ -388,8 +389,26 @@ function endShift() {
   clearInterval(timer);
   timer = null;
 
+  createJobEntry({ job, rate, multiplier, startTime, endTime, dayId });
   save();
   render();
+}
+
+function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
+  const seconds = (endTime - startTime) / 1000;
+  const earned = (rate * (multiplier || 1) / 3600) * seconds;
+
+  return {
+    job,
+    rate,
+    multiplier: multiplier || 1,
+    startTime,
+    endTime,
+    seconds,
+    earned,
+    date: new Date(startTime).toISOString().split("T")[0],
+    dayId
+  };
 }
 
 function editEndTime(index) {
@@ -424,7 +443,7 @@ function editEndTime(index) {
 
   job.endTime = d.getTime();
   job.seconds = newSeconds;
-  job.earned = (job.rate / 3600) * newSeconds;
+  job.earned = (job.rate * (job.multiplier || 1) / 3600) * newSeconds;
 
   save();
   render();
@@ -504,43 +523,34 @@ function isSameDay(isoDate, day) {
 	return isoDate.split("T")[0] === day;
 }
 
-function render(){
-console.log("render tick", currentEarned);
-console.log("RENDER TICK", Date.now());
+function render() {
   if (data.activeShift && !timer) {
     startTimer();
   }
 
   currentEarned = getCurrentEarned();
 
-  const miscTotal =
-    data.misc.reduce((s,m)=>s + m.amount, 0);
+  renderLiveEarnings();
+  renderStaticUI();
+}
 
-  const today = data.currentDay;
-  
-const todayJobs = data.jobs.filter(j =>
-  j.dayId === data.dayId
-);
-
-const todayMisc = data.misc.filter(m =>
-  m.dayId === data.dayId
-);
-
-  const liveEarned =
-	shiftStartedToday() ? currentEarned : 0;
-  
-  const dailyTotal =
-	todayJobs.reduce((s,j)=>s + j.earned, 0) +
-	todayMisc.reduce((s,m)=>s + m.amount, 0) +
-	liveEarned;
-
+function renderLiveEarnings() {
   $("current").textContent = currentEarned.toFixed(2);
-  $("daily").textContent = dailyTotal.toFixed(2);
 
-  renderGoals(dailyTotal);
-  renderWeekly();
-  renderLog();
-  save();
+  const todayJobs = data.jobs.filter(j =>
+    j.dayId === data.dayId
+  );
+
+  const todayMisc = data.misc.filter(m =>
+    m.dayId === data.dayId
+  );
+
+  const dailyTotal =
+    todayJobs.reduce((s,j)=>s + j.earned, 0) +
+    todayMisc.reduce((s,m)=>s + m.amount, 0) +
+    currentEarned;
+
+  $("daily").textContent = dailyTotal.toFixed(2);
 }
 
 function renderGoals(total) {
@@ -621,6 +631,32 @@ if (data.weekId !== currentWeekId) {
 }
 }
 
+function renderStaticUI() {
+  const miscTotal =
+    data.misc.reduce((s,m)=>s + m.amount, 0);
+
+  const todayJobs = data.jobs.filter(j =>
+    j.dayId === data.dayId
+  );
+
+  const todayMisc = data.misc.filter(m =>
+    m.dayId === data.dayId
+  );
+
+  const liveEarned =
+    shiftStartedToday() ? currentEarned : 0;
+
+  const dailyTotal =
+    todayJobs.reduce((s,j)=>s + j.earned, 0) +
+    todayMisc.reduce((s,m)=>s + m.amount, 0) +
+    liveEarned;
+
+  $("daily").textContent = dailyTotal.toFixed(2);
+
+  renderGoals(dailyTotal);
+  renderWeekly();
+  renderLog();
+}
 
 function renderLog() {
   const jobEntries = data.jobs.map((job, i) => {
@@ -703,6 +739,7 @@ function resetDay(){
   data.dailyGoalMet = false;
   currentEarned = 0;
 
+  createJobEntry({ job, rate, multiplier, startTime, endTime, dayId });
   save();
   render();
 }
