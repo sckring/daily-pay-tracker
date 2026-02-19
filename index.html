@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.6</small>
+<small id="version">HourlyXP v1.4.7</small>
 
 <style>
 :root {
@@ -748,11 +748,31 @@ const notify = {
   enabled: false,
 
   init() {
+    if (!("Notification" in window)) {
+      console.warn("Notifications not supported in this browser.");
+      this.enabled = false;
+      return;
+    }
     this.enabled = Notification.permission === "granted";
+    this.enabled = this.enabled || false;
+  },
+
+  async requestPermission() {
+    if (!("Notification" in window)) {
+      alert("Notifications not supported on this device.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    this.enabled = permission === "granted";
+
+    if (this.enabled) {
+      this.send("HourlyXP Notifications Enabled ✅");
+    }
   },
 
   async send(title, options = {}) {
-    if (!this.enabled) return;
+    if (!this.enabled || !("Notification" in window)) return;
 
     if ("serviceWorker" in navigator) {
       const reg = await navigator.serviceWorker.ready;
