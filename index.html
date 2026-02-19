@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.3</small>
+<small id="version">HourlyXP v1.4.4</small>
 
 <style>
 :root {
@@ -353,6 +353,11 @@ function startShift() {
   startTimer();
   render();
   save();
+  
+  if (!data.notificationPrompted &&
+    Notification.permission === "default") {
+  maybeShowNotificationPrompt();
+}
 }
 
 function startTimer(){
@@ -503,6 +508,12 @@ function addMiscIncome() {
 
   save();
   render();
+}
+
+function startLiveTimer() {
+  setInterval(() => {
+    renderLiveEarnings();
+  }, 1000);
 }
 
 function shiftStartedToday() {
@@ -813,22 +824,21 @@ window.onerror = (msg, src, line, col, err) => {
 };
 
 window.addEventListener("load", () => {
-	notify.init();
-	maybeShowNotificationPrompt();
 
-  // Default misc date to today
-  const today = new Date().toISOString().split("T")[0];
-  const miscDateInput = document.getElementById("miscDate");
-  if (miscDateInput) miscDateInput.value = today;
-
-  // Resume active shift safely
-  if (data.activeShift) {
-    rate = Number(data.activeShift.rate);
-    startTimer();
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js")
+      .catch(err => console.error("SW registration failed:", err));
   }
-	
-  render();
+
+  notify.init();
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) data = JSON.parse(saved);
+
+  renderStaticUI();
+  startLiveTimer();
 });
+
 </script>
 
 <div id="notifyModal" style="
