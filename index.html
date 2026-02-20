@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.13</small>
+<small id="version">HourlyXP v1.4.14</small>
 
 <style>
 :root {
@@ -805,21 +805,43 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function subscribeToPush() {
-  const reg = await navigator.serviceWorker.ready;
+  if (!("serviceWorker" in navigator)) return;
+  if (!("PushManager" in window)) return;
 
-  const subscription = await reg.pushManager.subscribe({
+  const registration = await navigator.serviceWorker.ready;
+
+  const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array("BBADKU0IPBOYmK64JDH0pOsQ25BTNiOUVzvA0xXwyISS61HRaWlF4AeAma5zAZp9Ov7muPHzYIZcgdIhU6NFNZk")
   });
+  
+  async function reportEarnings() {
+  const dailyTotal = parseFloat($("daily").textContent) || 0;
+  const weeklyTotal = parseFloat($("weeklyRemain").textContent) || 0;
 
+  await fetch("https://hourlyxp-server.onrender.com/report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+  dailyTotal,
+  weeklyTotal,
+  dailyGoal: getDailyGoal(),
+  weeklyGoal: getWeeklyGoal()
+})
+  });
+}
+
+  // Send to server
   await fetch("https://hourlyxp-server.onrender.com/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(subscription)
   });
 
-  console.log("Push subscribed!");
+  console.log("Subscribed to push on server");
 }
+
+setInterval(reportEarnings, 60_000);
 
 function maybeShowNotificationPrompt() {
   if (!("Notification" in window)) return;
