@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.10</small>
+<small id="version">HourlyXP v1.4.11</small>
 
 <style>
 :root {
@@ -809,7 +809,7 @@ async function subscribeToPush() {
 
   const subscription = await reg.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array("YOUR_PUBLIC_VAPID_KEY_HERE")
+    applicationServerKey: urlBase64ToUint8Array("BBADKU0IPBOYmK64JDH0pOsQ25BTNiOUVzvA0xXwyISS61HRaWlF4AeAma5zAZp9Ov7muPHzYIZcgdIhU6NFNZk")
   });
 
   await fetch("http://localhost:3000/subscribe", {
