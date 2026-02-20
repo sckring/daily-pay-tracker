@@ -812,7 +812,7 @@ async function subscribeToPush() {
     applicationServerKey: urlBase64ToUint8Array("BBADKU0IPBOYmK64JDH0pOsQ25BTNiOUVzvA0xXwyISS61HRaWlF4AeAma5zAZp9Ov7muPHzYIZcgdIhU6NFNZk")
   });
 
-  await fetch("http://localhost:3000/subscribe", {
+  await fetch(""https://hourlyxp-server.onrender.com/subscribe"", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(subscription)
