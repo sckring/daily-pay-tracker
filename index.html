@@ -765,19 +765,15 @@ const notify = {
     this.enabled = this.enabled || false;
   },
 
-  async requestPermission() {
-    if (!("Notification" in window)) {
-      alert("Notifications not supported on this device.");
-      return;
-    }
+ async requestPermission() {
+  const permission = await Notification.requestPermission();
+  this.enabled = permission === "granted";
 
-    const permission = await Notification.requestPermission();
-    this.enabled = permission === "granted";
-
-    if (this.enabled) {
-      this.send("HourlyXP Notifications Enabled ✅");
-    }
-  },
+  if (this.enabled) {
+    this.send("HourlyXP Notifications Enabled ✅");
+    subscribeToPush(); // 👈 ADD THIS LINE
+  }
+}
 
   async send(title, options = {}) {
     if (!this.enabled || !("Notification" in window)) return;
@@ -806,6 +802,33 @@ const notify = {
   }
 };
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
+
+async function subscribeToPush() {
+  const reg = await navigator.serviceWorker.ready;
+
+  const subscription = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array("YOUR_PUBLIC_VAPID_KEY_HERE")
+  });
+
+  await fetch("http://localhost:3000/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(subscription)
+  });
+
+  console.log("Push subscribed!");
+}
+
 function maybeShowNotificationPrompt() {
   if (!("Notification" in window)) return;
 
@@ -832,6 +855,8 @@ function dismissNotifications() {
 window.onerror = (msg, src, line, col, err) => {
 	alert("JS Error: " + msg);
 };
+
+subscribeToPush();
 
 window.addEventListener("load", () => {
 
