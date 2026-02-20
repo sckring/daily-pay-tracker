@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.14</small>
+<small id="version">HourlyXP v1.4.15</small>
 
 <style>
 :root {
@@ -810,25 +810,22 @@ async function subscribeToPush() {
 
   const registration = await navigator.serviceWorker.ready;
 
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array("BBADKU0IPBOYmK64JDH0pOsQ25BTNiOUVzvA0xXwyISS61HRaWlF4AeAma5zAZp9Ov7muPHzYIZcgdIhU6NFNZk")
-  });
-  
-  async function reportEarnings() {
-  const dailyTotal = parseFloat($("daily").textContent) || 0;
-  const weeklyTotal = parseFloat($("weeklyRemain").textContent) || 0;
+  let subscription = await registration.pushManager.getSubscription();
 
-  await fetch("https://hourlyxp-server.onrender.com/report", {
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array("BBADKU0IPBOYmK64JDH0pOsQ25BTNiOUVzvA0xXwyISS61HRaWlF4AeAma5zAZp9Ov7muPHzYIZcgdIhU6NFNZk")
+    });
+  }
+
+  await fetch("https://hourlyxp-server.onrender.com/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-  dailyTotal,
-  weeklyTotal,
-  dailyGoal: getDailyGoal(),
-  weeklyGoal: getWeeklyGoal()
-})
+    body: JSON.stringify(subscription)
   });
+
+  console.log("Subscribed to push on server");
 }
 
   // Send to server
@@ -869,8 +866,6 @@ function dismissNotifications() {
 window.onerror = (msg, src, line, col, err) => {
 	alert("JS Error: " + msg);
 };
-
-subscribeToPush();
 
 window.addEventListener("load", () => {
 
