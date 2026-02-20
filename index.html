@@ -764,8 +764,7 @@ const notify = {
   if (this.enabled) {
     this.send("HourlyXP Notifications Enabled ✅");
     subscribeToPush(); // 👈 ADD THIS LINE
-  }
-}
+  },
 
   async send(title, options = {}) {
     if (!this.enabled || !("Notification" in window)) return;
