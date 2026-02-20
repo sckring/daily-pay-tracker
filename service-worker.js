@@ -19,15 +19,12 @@ self.addEventListener("fetch", e => {
   );
 });
 
-self.addEventListener("notificationclick", event => {
-  event.notification.close();
-  event.waitUntil(
-    clients.openWindow("/")
-  );
-});
-
 self.addEventListener("push", event => {
-  const data = event.data.json();
+  let data = { title: "Notification", body: "" };
+
+  if (event.data) {
+    data = event.data.json();
+  }
 
   self.registration.showNotification(data.title, {
     body: data.body,
