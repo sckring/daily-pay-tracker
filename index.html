@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.9</small>
+<small id="version">HourlyXP v1.4.10</small>
 
 <style>
 :root {
@@ -764,6 +764,7 @@ const notify = {
   if (this.enabled) {
     this.send("HourlyXP Notifications Enabled ✅");
     subscribeToPush(); // 👈 ADD THIS LINE
+	}
   },
 
   async send(title, options = {}) {
