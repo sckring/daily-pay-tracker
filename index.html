@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.17</small>
+<small id="version">HourlyXP v1.4.18</small>
 
 <style>
 :root {
@@ -819,23 +819,20 @@ async function subscribeToPush() {
     });
   }
 
-  await fetch("https://hourlyxp-server.onrender.com/subscribe", {
+async function reportEarnings() {
+  const dailyTotal = parseFloat($("daily").textContent) || 0;
+  const weeklyTotal = parseFloat($("weeklyRemain").textContent) || 0;
+
+  await fetch("https://hourlyxp-server.onrender.com/report", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription)
+    body: JSON.stringify({
+      dailyTotal,
+      weeklyTotal,
+      dailyGoal: getDailyGoal(),
+      weeklyGoal: getWeeklyGoal()
+    })
   });
-
-  console.log("Subscribed to push on server");
-}
-
-  // Send to server
-  await fetch("https://hourlyxp-server.onrender.com/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription)
-  });
-
-  console.log("Subscribed to push on server");
 }
 
 setInterval(reportEarnings, 60_000);
