@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.30</small>
+<small id="version">HourlyXP v1.4.31</small>
 
 <style>
 :root {
@@ -237,6 +237,8 @@ header {
 const STORAGE_KEY = "hourlyXP_v1";
 let timer = null;
 let currentEarned = 0;
+
+const PUBLIC_KEY = "BBADKU0IPBOYmK64JDH0pOsQ25BTNiOUVzvA0xXwyISS61HRaWlF4AeAma5zAZp9Ov7muPHzYIZcgdIhU6NFNZk"
 
 let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   jobs: [],
@@ -495,6 +497,33 @@ function toggleManualTime() {
   input.style.display = input.style.display === "none" ? "block" : "none";
   // Focus automatically when shown
   if (input.style.display === "block") input.focus();
+}
+
+async function subscribeToPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+  const registration = await navigator.serviceWorker.ready;
+  console.log("Service worker ready:", registration);
+
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
+    });
+    console.log("New subscription created:", subscription);
+  } else {
+    console.log("Existing subscription:", subscription);
+  }
+
+  // Send subscription + userId to server
+  const userId = localStorage.getItem("userId");
+  const resp = await fetch("https://hourlyxp-server.onrender.com/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, subscription })
+  });
+  console.log("Subscription response:", await resp.text());
 }
 
 function maybeShowNotificationPrompt() { if(!("Notification" in window)) return; if(Notification.permission==="default" && !data.notificationPrompted) $("notifyModal").style.display="flex"; }
