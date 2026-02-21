@@ -347,6 +347,17 @@ function startShift() {
     manualInput.value = "";
     manualInput.style.display = "none";
   }
+  
+  await fetch("https://hourlyxp-server.onrender.com/startShift", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    startTime: Date.now(),
+    hourlyRate: hourlyRate,
+    dailyGoal: parseFloat($("dailyGoal").value) || 0,
+    weeklyGoal: parseFloat($("weeklyGoal").value) || 0
+  })
+});
 
   currentEarned = 0;
 
