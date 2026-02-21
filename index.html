@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.25</small>
+<small id="version">HourlyXP v1.4.26</small>
 
 <style>
 :root {
@@ -789,7 +789,7 @@ async function registerUser() {
   const data = await resp.json();
   localStorage.setItem("userId", data.userId);
   return data.userId;
-}
+},
 
 async requestPermission() {
   const permission = await Notification.requestPermission();
