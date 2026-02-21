@@ -819,6 +819,15 @@ async function subscribeToPush() {
     });
   }
 
+  await fetch("https://hourlyxp-server.onrender.com/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(subscription)
+  });
+
+  console.log("Subscribed to push on server");
+}
+
 async function reportEarnings() {
   const dailyTotal = parseFloat($("daily").textContent) || 0;
   const weeklyTotal = parseFloat($("weeklyRemain").textContent) || 0;
@@ -828,9 +837,7 @@ async function reportEarnings() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       dailyTotal,
-      weeklyTotal,
-      dailyGoal: getDailyGoal(),
-      weeklyGoal: getWeeklyGoal()
+      weeklyTotal
     })
   });
 }
