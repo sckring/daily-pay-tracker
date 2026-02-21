@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.23</small>
+<small id="version">HourlyXP v1.4.24</small>
 
 <style>
 :root {
@@ -768,6 +768,15 @@ const notify = {
     this.enabled = this.enabled || false;
   },
 
+async function registerUser() {
+  const resp = await fetch("https://hourlyxp-server.onrender.com/register", {
+    method: "POST"
+  });
+  const data = await resp.json();
+  localStorage.setItem("userId", data.userId);
+  return data.userId;
+}
+
 async requestPermission() {
   const permission = await Notification.requestPermission();
   this.enabled = permission === "granted";
@@ -829,11 +838,17 @@ async function subscribeToPush() {
     });
   }
 
-  // Send the subscription object to your server
+  // Get userId from localStorage
+  let userId = localStorage.getItem("userId");
+  if (!userId) {
+    userId = await registerUser();
+  }
+
+  // Send subscription + userId to server
   const resp = await fetch("https://hourlyxp-server.onrender.com/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription)
+    body: JSON.stringify({ userId, subscription })
   });
 
   console.log(await resp.text());
