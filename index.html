@@ -826,7 +826,7 @@ async function subscribeToPush() {
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array("BBADKU0IPBOYmK64JDH0pOsQ25BTNiOUVzvA0xXwyISS61HRaWlF4AeAma5zAZp9Ov7muPHzYIZcgdIhU6NFNZk")
+      applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
     });
   }
 
