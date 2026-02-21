@@ -20,15 +20,17 @@ self.addEventListener("fetch", e => {
 });
 
 self.addEventListener("push", event => {
-  let data = { title: "Notification", body: "" };
+  if (!event.data) return;
 
-  if (event.data) {
-    data = event.data.json();
-  }
+  const data = event.data.json();
 
-  self.registration.showNotification(data.title, {
+  const options = {
     body: data.body,
     icon: "/icon-192.png",
     badge: "/icon-192.png"
-  });
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
 });
