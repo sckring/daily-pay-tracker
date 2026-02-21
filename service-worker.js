@@ -1,6 +1,6 @@
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open("pay-tracker-v9").then(cache =>
+    caches.open("pay-tracker-v10").then(cache =>
       cache.addAll([
         "./",
         "./index.html",
