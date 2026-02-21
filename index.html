@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.29</small>
+<small id="version">HourlyXP v1.4.30</small>
 
 <style>
 :root {
@@ -251,13 +251,12 @@ let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
 
 const $ = id => document.getElementById(id);
 
-// --- User ID handling ---
+// --- User ID ---
 let userId = localStorage.getItem("userId");
-
 async function ensureUser() {
   if (!userId) {
     const resp = await fetch("https://hourlyxp-server.onrender.com/register", { method: "POST" });
-    const json = await resp.json(); // rename from 'data' to 'json'
+    const json = await resp.json();
     userId = json.userId;
     localStorage.setItem("userId", userId);
   }
@@ -275,16 +274,13 @@ async function startShift() {
   const manualInput = $("manualStartTime");
   const multiplierInput = $("multiplier");
 
-  if (!jobInput || !rateInput) return alert("Missing input fields");
-
   const job = jobInput.value.trim();
   const rate = parseFloat(rateInput.value);
   const multiplier = parseFloat(multiplierInput.value || 1);
 
-  if (!job || !rate || rate <= 0) return alert("Enter a valid job name and rate");
+  if (!job || !rate || rate <= 0) return alert("Enter a valid job name and hourly rate");
 
   let startTime = Date.now();
-
   if (manualInput && manualInput.value) {
     const [h, m] = manualInput.value.split(":").map(Number);
     const d = new Date();
@@ -302,7 +298,6 @@ async function startShift() {
   render();
   save();
 
-  // Optional: notify server
   fetch("https://hourlyxp-server.onrender.com/startShift", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -323,11 +318,7 @@ async function startShift() {
 function endShift() {
   if (!data.activeShift) return;
 
-  const entry = createJobEntry({
-    ...data.activeShift,
-    endTime: Date.now()
-  });
-
+  const entry = createJobEntry({ ...data.activeShift, endTime: Date.now() });
   data.jobs.push(entry);
   data.activeShift = null;
   currentEarned = 0;
@@ -342,7 +333,6 @@ function endShift() {
 function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
   const seconds = (endTime - startTime) / 1000;
   const earned = (rate * (multiplier || 1) / 3600) * seconds;
-
   return { job, rate, multiplier, startTime, endTime, seconds, earned, date: new Date(startTime).toISOString().split("T")[0], dayId };
 }
 
@@ -375,6 +365,7 @@ function renderLiveEarnings() {
   const todayJobs = data.jobs.filter(j => j.dayId === data.dayId);
   const todayMisc = data.misc.filter(m => m.dayId === data.dayId);
   const dailyTotal = todayJobs.reduce((s,j)=>s+j.earned,0) + todayMisc.reduce((s,m)=>s+m.amount,0) + currentEarned;
+
   $("daily").textContent = dailyTotal.toFixed(2);
   renderGoals(dailyTotal);
 }
@@ -382,114 +373,134 @@ function renderLiveEarnings() {
 // --- Goals ---
 function renderGoals(total) {
   const dailyGoal = parseFloat($("dailyGoal").value);
-  if (!dailyGoal) return;
-
-  const remaining = Math.max(dailyGoal - total, 0);
-  const pct = Math.min((total / dailyGoal) * 100, 100);
-
-  $("dailyRemain").textContent = remaining.toFixed(2);
-  $("dailyBar").style.width = pct + "%";
-
-  if (total >= dailyGoal && !data.dailyGoalMet) {
-    data.dailyGoalMet = true;
-    save();
-    notify.dailyGoal(total);
+  if (dailyGoal) {
+    const remaining = Math.max(dailyGoal - total, 0);
+    const pct = Math.min((total / dailyGoal) * 100, 100);
+    $("dailyRemain").textContent = remaining.toFixed(2);
+    $("dailyBar").style.width = pct + "%";
+    if (total >= dailyGoal && !data.dailyGoalMet) { data.dailyGoalMet = true; save(); notify.dailyGoal(total); }
   }
-
   renderWeekly();
 }
 
 function renderWeekly() {
   const currentWeekId = getWeekId();
-  if (data.weekId !== currentWeekId) {
-    data.weekId = currentWeekId;
-    data.weeklyGoalMet = false;
-    save();
-  }
+  if (data.weekId !== currentWeekId) { data.weekId = currentWeekId; data.weeklyGoalMet = false; save(); }
 
   const weekAgo = Date.now() - 604800000;
   const weekJobs = data.jobs.filter(j => j.startTime >= weekAgo);
   const weekMisc = data.misc.filter(m => new Date(m.date).getTime() >= weekAgo);
-
   let total = weekJobs.reduce((s,j)=>s+j.earned,0) + weekMisc.reduce((s,m)=>s+m.amount,0);
   if (data.activeShift && data.activeShift.startTime >= weekAgo) total += currentEarned;
 
   const goal = parseFloat($("weeklyGoal").value);
-
   $("weeklyStats").innerHTML = `Weekly Total: $${total.toFixed(2)}<br>Jobs This Week: ${weekJobs.length}`;
   if (goal) {
-    $("weeklyRemain").textContent = Math.max(goal - total, 0).toFixed(2);
-    $("weeklyBar").style.width = Math.min((total/goal)*100,100) + "%";
-    if (total >= goal && !data.weeklyGoalMet) {
-      data.weeklyGoalMet = true;
-      save();
-      notify.weeklyGoal(total);
-    }
-  } else {
-    $("weeklyRemain").textContent = "—";
-    $("weeklyBar").style.width = "0%";
-  }
+    $("weeklyRemain").textContent = Math.max(goal - total,0).toFixed(2);
+    $("weeklyBar").style.width = Math.min((total/goal)*100,100)+"%";
+    if (total>=goal && !data.weeklyGoalMet) { data.weeklyGoalMet=true; save(); notify.weeklyGoal(total); }
+  } else { $("weeklyRemain").textContent="—"; $("weeklyBar").style.width="0%"; }
+}
+
+// --- Misc Income ---
+function addMiscIncome() {
+  const label = $("miscLabel").value.trim();
+  const amount = parseFloat($("miscAmount").value);
+  const dateValue = $("miscDate").value;
+
+  if (!label || !amount || amount<=0) return alert("Enter a description and amount");
+  if (!dateValue) return alert("Select a date");
+
+  data.misc.push({ label, amount, date: dateValue, dayId: data.dayId });
+  $("miscLabel").value=""; $("miscAmount").value="";
+  save(); render();
+}
+
+// --- Log ---
+function editEndTime(index) {
+  const job = data.jobs[index];
+  const input = prompt("Enter end time (HH:MM, 24-hour)", new Date(job.endTime).toTimeString().slice(0,5));
+  if (!input) return;
+
+  const [h,m] = input.split(":").map(Number);
+  if (isNaN(h)||isNaN(m)) return alert("Invalid time format");
+
+  const d = new Date(job.endTime);
+  d.setHours(h,m,0,0);
+  if (d.getTime() < job.startTime) d.setDate(d.getDate()+1);
+
+  const newSeconds = (d.getTime()-job.startTime)/1000;
+  if (newSeconds<=0) return alert("End time must be after start time");
+
+  job.endTime = d.getTime();
+  job.seconds = newSeconds;
+  job.earned = (job.rate*(job.multiplier||1)/3600)*newSeconds;
+  save(); render();
+}
+
+function deleteJob(index) {
+  if (!confirm("Delete this job entry?")) return;
+  data.jobs.splice(index,1);
+  save(); render();
+}
+
+// --- UI Rendering ---
+function renderStaticUI() {
+  renderLog();
+  renderWeekly();
+}
+
+function renderLog() {
+  const jobEntries = data.jobs.map((job,i)=>{
+    const seconds=job.seconds||0, earned=job.earned||0;
+    const multLabel = job.multiplier!==1?` (${job.multiplier}×)`:``;
+    const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60);
+    return `<div class="log-item">
+      <strong>${job.job}${multLabel}</strong><br>$${earned.toFixed(2)} — ${h}h ${m}m<br>
+      <button class="secondary" onclick="editEndTime(${i})">Edit End Time</button>
+      <button class="danger" onclick="deleteJob(${i})">Delete Job</button>
+    </div>`;
+  });
+
+  const miscEntries = data.misc.map(m=>{
+    const d = new Date(m.date).toLocaleDateString();
+    return `<div class="log-item"><strong>${m.label}</strong><br>+$${m.amount.toFixed(2)} — ${d}</div>`;
+  });
+
+  $("log").innerHTML = [...miscEntries,...jobEntries].join("");
 }
 
 // --- Notifications ---
 const notify = {
   enabled: false,
-  init() { this.enabled = Notification.permission === "granted"; },
-  async requestPermission() {
-    const permission = await Notification.requestPermission();
-    this.enabled = permission === "granted";
-    if (this.enabled) this.send("HourlyXP Notifications Enabled ✅");
-  },
-  async send(title, options={}) {
-    if (!this.enabled || !("Notification" in window)) return;
-    if ("serviceWorker" in navigator) {
-      const reg = await navigator.serviceWorker.ready;
-      reg.showNotification(title, { icon:"icon-192.png", badge:"icon-192.png", ...options });
-    }
-  },
-  dailyGoal(amount) { this.send("🎉 Daily Goal Met!", { body:`You earned $${amount.toFixed(2)} today!` }); },
-  weeklyGoal(amount) { this.send("🏆 Weekly Goal Crushed!", { body:`Weekly total: $${amount.toFixed(2)}` }); }
+  init() { this.enabled = Notification.permission==="granted"; },
+  async requestPermission() { const perm = await Notification.requestPermission(); this.enabled = perm==="granted"; if(this.enabled) this.send("HourlyXP Notifications Enabled ✅"); },
+  async send(title, options={}) { if(!this.enabled || !("Notification" in window)) return; if("serviceWorker" in navigator){ const reg = await navigator.serviceWorker.ready; reg.showNotification(title,{icon:"icon-192.png",badge:"icon-192.png",...options}); } },
+  dailyGoal(amount) { this.send("🎉 Daily Goal Met!",{body:`You earned $${amount.toFixed(2)} today!`}); },
+  weeklyGoal(amount) { this.send("🏆 Weekly Goal Crushed!",{body:`Weekly total: $${amount.toFixed(2)}`}); }
 };
 
 // --- Utilities ---
 function getWeekId() {
-  const d = new Date();
-  const firstDayOfWeek = new Date(d.setDate(d.getDate() - d.getDay()));
-  firstDayOfWeek.setHours(0,0,0,0);
-  return firstDayOfWeek.getTime();
+  const d = new Date(); const fd = new Date(d.setDate(d.getDate()-d.getDay())); fd.setHours(0,0,0,0); return fd.getTime();
 }
 
-function maybeShowNotificationPrompt() {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "default" && !data.notificationPrompted) {
-    $("notifyModal").style.display = "flex";
-  }
-}
+function maybeShowNotificationPrompt() { if(!("Notification" in window)) return; if(Notification.permission==="default" && !data.notificationPrompted) $("notifyModal").style.display="flex"; }
+function acceptNotifications(){ $("notifyModal").style.display="none"; data.notificationPrompted=true; save(); notify.requestPermission(); }
+function dismissNotifications(){ $("notifyModal").style.display="none"; data.notificationPrompted=true; save(); }
 
-function acceptNotifications() {
-  $("notifyModal").style.display = "none";
-  data.notificationPrompted = true;
-  save();
-  notify.requestPermission();
-}
+function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(data)); }
 
-function dismissNotifications() {
-  $("notifyModal").style.display = "none";
-  data.notificationPrompted = true;
-  save();
-}
-
-// --- Save & Init ---
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-
-window.addEventListener("load", () => {
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
+// --- Init ---
+window.addEventListener("load",()=>{
+  if("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
   notify.init();
-  const saved = localStorage.getItem(STORAGE_KEY); 
-  if (saved) data = JSON.parse(saved);
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved) data = JSON.parse(saved);
   render();
 });
 </script>
+
 
 
 
