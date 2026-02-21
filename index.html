@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.28</small>
+<small id="version">HourlyXP v1.4.29</small>
 
 <style>
 :root {
@@ -257,24 +257,22 @@ let userId = localStorage.getItem("userId");
 async function ensureUser() {
   if (!userId) {
     const resp = await fetch("https://hourlyxp-server.onrender.com/register", { method: "POST" });
-    const json = await resp.json();  // <- rename from 'data' to 'json'
+    const json = await resp.json(); // rename from 'data' to 'json'
     userId = json.userId;
     localStorage.setItem("userId", userId);
   }
   return userId;
 }
 
-// --- Start Shift ---
+// --- Shift Handling ---
 async function startShift() {
-  await ensureUser();  // make sure userId exists
+  await ensureUser();
 
-  if (data.activeShift) {
-    alert("You already have an active job.");
-    return;
-  }
+  if (data.activeShift) return alert("You already have an active job.");
 
   const jobInput = $("jobName");
   const rateInput = $("rate");
+  const manualInput = $("manualStartTime");
   const multiplierInput = $("multiplier");
 
   if (!jobInput || !rateInput) return alert("Missing input fields");
@@ -285,7 +283,17 @@ async function startShift() {
 
   if (!job || !rate || rate <= 0) return alert("Enter a valid job name and rate");
 
-  const startTime = Date.now();
+  let startTime = Date.now();
+
+  if (manualInput && manualInput.value) {
+    const [h, m] = manualInput.value.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
+    startTime = d.getTime();
+    manualInput.value = "";
+    manualInput.style.display = "none";
+  }
 
   data.activeShift = { job, rate, multiplier, startTime, dayId: data.dayId };
   currentEarned = 0;
@@ -293,6 +301,49 @@ async function startShift() {
   startTimer();
   render();
   save();
+
+  // Optional: notify server
+  fetch("https://hourlyxp-server.onrender.com/startShift", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      startTime,
+      hourlyRate: rate,
+      dailyGoal: parseFloat($("dailyGoal").value) || 0,
+      weeklyGoal: parseFloat($("weeklyGoal").value) || 0
+    })
+  });
+
+  if (!data.notificationPrompted && Notification.permission === "default") {
+    maybeShowNotificationPrompt();
+  }
+}
+
+function endShift() {
+  if (!data.activeShift) return;
+
+  const entry = createJobEntry({
+    ...data.activeShift,
+    endTime: Date.now()
+  });
+
+  data.jobs.push(entry);
+  data.activeShift = null;
+  currentEarned = 0;
+
+  clearInterval(timer);
+  timer = null;
+
+  save();
+  render();
+}
+
+function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
+  const seconds = (endTime - startTime) / 1000;
+  const earned = (rate * (multiplier || 1) / 3600) * seconds;
+
+  return { job, rate, multiplier, startTime, endTime, seconds, earned, date: new Date(startTime).toISOString().split("T")[0], dayId };
 }
 
 // --- Timer ---
@@ -314,24 +365,132 @@ function getCurrentEarned() {
 function render() {
   if (data.activeShift && !timer) startTimer();
   currentEarned = getCurrentEarned();
-  $("current").textContent = currentEarned.toFixed(2);
+  renderLiveEarnings();
+  renderStaticUI();
 }
 
 function renderLiveEarnings() {
   $("current").textContent = currentEarned.toFixed(2);
+
+  const todayJobs = data.jobs.filter(j => j.dayId === data.dayId);
+  const todayMisc = data.misc.filter(m => m.dayId === data.dayId);
+  const dailyTotal = todayJobs.reduce((s,j)=>s+j.earned,0) + todayMisc.reduce((s,m)=>s+m.amount,0) + currentEarned;
+  $("daily").textContent = dailyTotal.toFixed(2);
+  renderGoals(dailyTotal);
 }
 
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+// --- Goals ---
+function renderGoals(total) {
+  const dailyGoal = parseFloat($("dailyGoal").value);
+  if (!dailyGoal) return;
+
+  const remaining = Math.max(dailyGoal - total, 0);
+  const pct = Math.min((total / dailyGoal) * 100, 100);
+
+  $("dailyRemain").textContent = remaining.toFixed(2);
+  $("dailyBar").style.width = pct + "%";
+
+  if (total >= dailyGoal && !data.dailyGoalMet) {
+    data.dailyGoalMet = true;
+    save();
+    notify.dailyGoal(total);
+  }
+
+  renderWeekly();
 }
 
-// --- Init ---
+function renderWeekly() {
+  const currentWeekId = getWeekId();
+  if (data.weekId !== currentWeekId) {
+    data.weekId = currentWeekId;
+    data.weeklyGoalMet = false;
+    save();
+  }
+
+  const weekAgo = Date.now() - 604800000;
+  const weekJobs = data.jobs.filter(j => j.startTime >= weekAgo);
+  const weekMisc = data.misc.filter(m => new Date(m.date).getTime() >= weekAgo);
+
+  let total = weekJobs.reduce((s,j)=>s+j.earned,0) + weekMisc.reduce((s,m)=>s+m.amount,0);
+  if (data.activeShift && data.activeShift.startTime >= weekAgo) total += currentEarned;
+
+  const goal = parseFloat($("weeklyGoal").value);
+
+  $("weeklyStats").innerHTML = `Weekly Total: $${total.toFixed(2)}<br>Jobs This Week: ${weekJobs.length}`;
+  if (goal) {
+    $("weeklyRemain").textContent = Math.max(goal - total, 0).toFixed(2);
+    $("weeklyBar").style.width = Math.min((total/goal)*100,100) + "%";
+    if (total >= goal && !data.weeklyGoalMet) {
+      data.weeklyGoalMet = true;
+      save();
+      notify.weeklyGoal(total);
+    }
+  } else {
+    $("weeklyRemain").textContent = "—";
+    $("weeklyBar").style.width = "0%";
+  }
+}
+
+// --- Notifications ---
+const notify = {
+  enabled: false,
+  init() { this.enabled = Notification.permission === "granted"; },
+  async requestPermission() {
+    const permission = await Notification.requestPermission();
+    this.enabled = permission === "granted";
+    if (this.enabled) this.send("HourlyXP Notifications Enabled ✅");
+  },
+  async send(title, options={}) {
+    if (!this.enabled || !("Notification" in window)) return;
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      reg.showNotification(title, { icon:"icon-192.png", badge:"icon-192.png", ...options });
+    }
+  },
+  dailyGoal(amount) { this.send("🎉 Daily Goal Met!", { body:`You earned $${amount.toFixed(2)} today!` }); },
+  weeklyGoal(amount) { this.send("🏆 Weekly Goal Crushed!", { body:`Weekly total: $${amount.toFixed(2)}` }); }
+};
+
+// --- Utilities ---
+function getWeekId() {
+  const d = new Date();
+  const firstDayOfWeek = new Date(d.setDate(d.getDate() - d.getDay()));
+  firstDayOfWeek.setHours(0,0,0,0);
+  return firstDayOfWeek.getTime();
+}
+
+function maybeShowNotificationPrompt() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default" && !data.notificationPrompted) {
+    $("notifyModal").style.display = "flex";
+  }
+}
+
+function acceptNotifications() {
+  $("notifyModal").style.display = "none";
+  data.notificationPrompted = true;
+  save();
+  notify.requestPermission();
+}
+
+function dismissNotifications() {
+  $("notifyModal").style.display = "none";
+  data.notificationPrompted = true;
+  save();
+}
+
+// --- Save & Init ---
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
 window.addEventListener("load", () => {
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
+  notify.init();
   const saved = localStorage.getItem(STORAGE_KEY); 
   if (saved) data = JSON.parse(saved);
   render();
 });
 </script>
+
 
 
 
