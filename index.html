@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.27</small>
+<small id="version">HourlyXP v1.4.28</small>
 
 <style>
 :root {
@@ -234,10 +234,6 @@ header {
 </div>
 
 <script>
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) render();
-});
-
 const STORAGE_KEY = "hourlyXP_v1";
 let timer = null;
 let currentEarned = 0;
@@ -255,74 +251,30 @@ let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
 
 const $ = id => document.getElementById(id);
 
-if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
-
-if (!data.weekId) data.weekId = getWeekId();
-
 // --- User ID handling ---
 let userId = localStorage.getItem("userId");
 
 async function ensureUser() {
   if (!userId) {
     const resp = await fetch("https://hourlyxp-server.onrender.com/register", { method: "POST" });
-    const json = await resp.json();
+    const json = await resp.json();  // <- rename from 'data' to 'json'
     userId = json.userId;
     localStorage.setItem("userId", userId);
   }
   return userId;
 }
 
-// --- Helper ---
-function getWeekId() {
-  const d = new Date();
-  const firstDayOfWeek = new Date(d.setDate(d.getDate() - d.getDay()));
-  firstDayOfWeek.setHours(0,0,0,0);
-  return firstDayOfWeek.getTime();
-}
-
-// --- Notify object ---
-const notify = {
-  enabled: false,
-
-  init() {
-    this.enabled = ("Notification" in window) && Notification.permission === "granted";
-  },
-
-  async requestPermission() {
-    const permission = await Notification.requestPermission();
-    this.enabled = permission === "granted";
-  },
-
-  async send(title, options = {}) {
-    if (!this.enabled) return;
-    if ("serviceWorker" in navigator) {
-      const reg = await navigator.serviceWorker.ready;
-      reg.showNotification(title, {
-        icon: "icon-192.png",
-        badge: "icon-192.png",
-        ...options
-      });
-    }
-  },
-
-  dailyGoal(amount) {
-    this.send("🎉 Daily Goal Met!", { body: `You earned $${amount.toFixed(2)} today!` });
-  },
-
-  weeklyGoal(amount) {
-    this.send("🏆 Weekly Goal Crushed!", { body: `Weekly total: $${amount.toFixed(2)}` });
-  }
-};
-
 // --- Start Shift ---
 async function startShift() {
-  await ensureUser();
+  await ensureUser();  // make sure userId exists
 
-  if (data.activeShift) return alert("You already have an active job.");
+  if (data.activeShift) {
+    alert("You already have an active job.");
+    return;
+  }
 
   const jobInput = $("jobName");
   const rateInput = $("rate");
-  const manualInput = $("manualStartTime");
   const multiplierInput = $("multiplier");
 
   if (!jobInput || !rateInput) return alert("Missing input fields");
@@ -333,14 +285,7 @@ async function startShift() {
 
   if (!job || !rate || rate <= 0) return alert("Enter a valid job name and rate");
 
-  let startTime = Date.now();
-  if (manualInput && manualInput.value) {
-    const [h, m] = manualInput.value.split(":").map(Number);
-    const d = new Date(); d.setHours(h,m,0,0);
-    if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
-    startTime = d.getTime();
-    manualInput.value = ""; manualInput.style.display = "none";
-  }
+  const startTime = Date.now();
 
   data.activeShift = { job, rate, multiplier, startTime, dayId: data.dayId };
   currentEarned = 0;
@@ -348,8 +293,6 @@ async function startShift() {
   startTimer();
   render();
   save();
-
-  if (!data.notificationPrompted && Notification.permission === "default") maybeShowNotificationPrompt();
 }
 
 // --- Timer ---
@@ -361,44 +304,35 @@ function startTimer() {
   }, 1000);
 }
 
-// --- Helpers ---
 function getCurrentEarned() {
   if (!data.activeShift) return 0;
   const elapsed = (Date.now() - data.activeShift.startTime) / 1000;
   return (data.activeShift.rate * (data.activeShift.multiplier || 1) / 3600) * elapsed;
 }
 
-function toggleManualTime() { $("manualStartTime").style.display = $("manualStartTime").style.display === "none" ? "block" : "none"; }
-
-// --- Render functions ---
+// --- Render ---
 function render() {
   if (data.activeShift && !timer) startTimer();
   currentEarned = getCurrentEarned();
-  renderLiveEarnings();
-  renderStaticUI();
+  $("current").textContent = currentEarned.toFixed(2);
 }
 
 function renderLiveEarnings() {
   $("current").textContent = currentEarned.toFixed(2);
-  const todayJobs = data.jobs.filter(j => j.dayId === data.dayId);
-  const todayMisc = data.misc.filter(m => m.dayId === data.dayId);
-  const dailyTotal = todayJobs.reduce((s,j)=>s+j.earned,0) + todayMisc.reduce((s,m)=>s+m.amount,0) + currentEarned;
-  $("daily").textContent = dailyTotal.toFixed(2);
-  renderGoals(dailyTotal);
 }
 
-// --- Save & load ---
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
 
 // --- Init ---
 window.addEventListener("load", () => {
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js").catch(console.error);
-  notify.init();
-  const saved = localStorage.getItem(STORAGE_KEY); if (saved) data = JSON.parse(saved);
-  renderStaticUI();
-  startLiveTimer();
+  const saved = localStorage.getItem(STORAGE_KEY); 
+  if (saved) data = JSON.parse(saved);
+  render();
 });
 </script>
+
 
 
 <div id="notifyModal" style="
