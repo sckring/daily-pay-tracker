@@ -768,15 +768,15 @@ const notify = {
     this.enabled = this.enabled || false;
   },
 
- async requestPermission() {
+async requestPermission() {
   const permission = await Notification.requestPermission();
   this.enabled = permission === "granted";
 
   if (this.enabled) {
     this.send("HourlyXP Notifications Enabled ✅");
-    subscribeToPush(); // 👈 ADD THIS LINE
-	}
-  },
+    subscribeToPush(); // make sure this is called here
+  }
+},
 
   async send(title, options = {}) {
     if (!this.enabled || !("Notification" in window)) return;
@@ -816,8 +816,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function subscribeToPush() {
-  if (!("serviceWorker" in navigator)) return;
-  if (!("PushManager" in window)) return;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
   const registration = await navigator.serviceWorker.ready;
 
@@ -830,13 +829,14 @@ async function subscribeToPush() {
     });
   }
 
-  await fetch("https://hourlyxp-server.onrender.com/subscribe", {
+  // Send the subscription object to your server
+  const resp = await fetch("https://hourlyxp-server.onrender.com/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(subscription)
   });
 
-  console.log("Subscribed to push on server");
+  console.log(await resp.text());
 }
 
 async function reportEarnings() {
