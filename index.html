@@ -282,14 +282,18 @@ async function startShift() {
 
   let startTime = Date.now();
   if (manualInput && manualInput.value) {
-    const [h, m] = manualInput.value.split(":").map(Number);
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
-    if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
-    startTime = d.getTime();
-    manualInput.value = "";
-    manualInput.style.display = "none";
-  }
+  const [h, m] = manualInput.value.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+
+  // If user selects a future time, assume yesterday
+  if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
+
+  startTime = d.getTime();
+
+  // Keep input visible for reference, don’t hide automatically
+  // manualInput.style.display = "none";  <-- removed
+}
 
   data.activeShift = { job, rate, multiplier, startTime, dayId: data.dayId };
   currentEarned = 0;
@@ -483,6 +487,14 @@ const notify = {
 // --- Utilities ---
 function getWeekId() {
   const d = new Date(); const fd = new Date(d.setDate(d.getDate()-d.getDay())); fd.setHours(0,0,0,0); return fd.getTime();
+}
+
+function toggleManualTime() {
+  const input = $("manualStartTime");
+  // Toggle display
+  input.style.display = input.style.display === "none" ? "block" : "none";
+  // Focus automatically when shown
+  if (input.style.display === "block") input.focus();
 }
 
 function maybeShowNotificationPrompt() { if(!("Notification" in window)) return; if(Notification.permission==="default" && !data.notificationPrompted) $("notifyModal").style.display="flex"; }
