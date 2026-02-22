@@ -384,7 +384,7 @@ function renderGoals(total) {
     const pct = Math.min((total / dailyGoal) * 100, 100);
     $("dailyRemain").textContent = remaining.toFixed(2);
     $("dailyBar").style.width = pct + "%";
-    if (total >= dailyGoal && !data.dailyGoalMet) { data.dailyGoalMet = true; save(); notify.dailyGoal(total); }
+    if (total >= dailyGoal && !data.dailyGoalMet) { data.dailyGoalMet = true; save(); }
   }
   renderWeekly();
 }
@@ -482,7 +482,6 @@ const notify = {
   init() { this.enabled = Notification.permission==="granted"; },
   async requestPermission() { const perm = await Notification.requestPermission(); this.enabled = perm==="granted"; if(this.enabled) this.send("HourlyXP Notifications Enabled ✅"); },
   async send(title, options={}) { if(!this.enabled || !("Notification" in window)) return; if("serviceWorker" in navigator){ const reg = await navigator.serviceWorker.ready; reg.showNotification(title,{icon:"icon-192.png",badge:"icon-192.png",...options}); } },
-  dailyGoal(amount) { this.send("🎉 Daily Goal Met!",{body:`You earned $${amount.toFixed(2)} today!`}); },
   weeklyGoal(amount) { this.send("🏆 Weekly Goal Crushed!",{body:`Weekly total: $${amount.toFixed(2)}`}); }
 };
 
