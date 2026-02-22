@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.31</small>
+<small id="version">HourlyXP v1.4.32</small>
 
 <style>
 :root {
@@ -527,7 +527,20 @@ async function subscribeToPush() {
 }
 
 function maybeShowNotificationPrompt() { if(!("Notification" in window)) return; if(Notification.permission==="default" && !data.notificationPrompted) $("notifyModal").style.display="flex"; }
-function acceptNotifications(){ $("notifyModal").style.display="none"; data.notificationPrompted=true; save(); notify.requestPermission(); }
+
+async function acceptNotifications(){
+  $("notifyModal").style.display="none";
+  data.notificationPrompted=true;
+  save();
+
+  await notify.requestPermission();
+
+  if (Notification.permission === "granted") {
+    await ensureUser();   // make sure userId exists
+    await subscribeToPush();
+  }
+}
+
 function dismissNotifications(){ $("notifyModal").style.display="none"; data.notificationPrompted=true; save(); }
 
 function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(data)); }
