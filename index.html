@@ -331,6 +331,15 @@ function endShift() {
 
   clearInterval(timer);
   timer = null;
+  
+  await fetch("https://hourlyxp-server.onrender.com/endShift", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    shiftId: data.activeShift.serverShiftId,
+    endTime: new Date().toISOString()
+  })
+});
 
   save();
   render();
