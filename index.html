@@ -500,30 +500,37 @@ function toggleManualTime() {
 }
 
 async function subscribeToPush() {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-
-  const registration = await navigator.serviceWorker.ready;
-  console.log("Service worker ready:", registration);
-
-  let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
-    });
-    console.log("New subscription created:", subscription);
-  } else {
-    console.log("Existing subscription:", subscription);
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    alert("Push not supported");
+    return;
   }
 
-  // Send subscription + userId to server
+  const registration = await navigator.serviceWorker.ready;
+
+  let subscription = await registration.pushManager.getSubscription();
+
+  if (!subscription) {
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
+      });
+    } catch (err) {
+      alert("Subscription failed: " + err.message);
+      return;
+    }
+  }
+
   const userId = localStorage.getItem("userId");
-  const resp = await fetch("https://hourlyxp-server.onrender.com/subscribe", {
+
+  const resp = await fetch("https://hourlyxp-server.onrender.com/debug", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId, subscription })
   });
-  console.log("Subscription response:", await resp.text());
+
+  const text = await resp.text();
+  alert("Server saw: " + text);
 }
 
 function maybeShowNotificationPrompt() { if(!("Notification" in window)) return; if(Notification.permission==="default" && !data.notificationPrompted) $("notifyModal").style.display="flex"; }
@@ -544,6 +551,16 @@ async function acceptNotifications(){
 function dismissNotifications(){ $("notifyModal").style.display="none"; data.notificationPrompted=true; save(); }
 
 function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(data)); }
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+}
 
 // --- Init ---
 window.addEventListener("load", async () => {
