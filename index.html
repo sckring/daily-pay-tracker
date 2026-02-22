@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.38</small>
+<small id="version">HourlyXP v1.4.39</small>
 
 <style>
 :root {
@@ -304,27 +304,52 @@ async function startShift() {
   render();
   save();
 
-  fetch("https://hourlyxp-server.onrender.com/startShift", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId,
-      startTime,
-      hourlyRate: rate,
-      dailyGoal: parseFloat($("dailyGoal").value) || 0,
-      weeklyGoal: parseFloat($("weeklyGoal").value) || 0
-    })
-  });
+  const resp = await fetch("https://hourlyxp-server.onrender.com/startShift", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    userId,
+    startTime,
+    hourlyRate: rate,
+    dailyGoal: parseFloat($("dailyGoal").value) || 0,
+    weeklyGoal: parseFloat($("weeklyGoal").value) || 0
+  })
+});
+
+const serverShift = await resp.json();
+
+// Store DB shift ID locally
+data.activeShift.serverShiftId = serverShift.id;
 
   if (!data.notificationPrompted && Notification.permission === "default") {
     maybeShowNotificationPrompt();
   }
 }
 
-function endShift() {
+async function endShift() {
   if (!data.activeShift) return;
 
-  const entry = createJobEntry({ ...data.activeShift, endTime: Date.now() });
+  // Save server shift ID before clearing
+  const shiftId = data.activeShift.serverShiftId;
+
+  const endTime = new Date().toISOString();
+
+  // Notify backend first
+  await fetch("https://hourlyxp-server.onrender.com/endShift", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      shiftId,
+      endTime
+    })
+  });
+
+  // Local calculations
+  const entry = createJobEntry({
+    ...data.activeShift,
+    endTime: Date.now()
+  });
+
   data.jobs.push(entry);
   data.activeShift = null;
   currentEarned = 0;
@@ -335,15 +360,6 @@ function endShift() {
   save();
   render();
 }
-
-  await fetch("https://hourlyxp-server.onrender.com/endShift", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    shiftId: data.activeShift.serverShiftId,
-    endTime: new Date().toISOString()
-  })
-});
 
 function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
   const seconds = (endTime - startTime) / 1000;
