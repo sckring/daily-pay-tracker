@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.34</small>
+<small id="version">HourlyXP v1.4.35</small>
 
 <style>
 :root {
@@ -523,7 +523,7 @@ async function subscribeToPush() {
 
   const userId = localStorage.getItem("userId");
 
-  const resp = await fetch("https://hourlyxp-server.onrender.com/debug", {
+  const resp = await fetch("https://hourlyxp-server.onrender.com/subscribe, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId, subscription })
