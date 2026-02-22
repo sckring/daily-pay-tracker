@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.37</small>
+<small id="version">HourlyXP v1.4.38</small>
 
 <style>
 :root {
@@ -331,7 +331,11 @@ function endShift() {
 
   clearInterval(timer);
   timer = null;
-  
+
+  save();
+  render();
+}
+
   await fetch("https://hourlyxp-server.onrender.com/endShift", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -340,10 +344,6 @@ function endShift() {
     endTime: new Date().toISOString()
   })
 });
-
-  save();
-  render();
-}
 
 function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
   const seconds = (endTime - startTime) / 1000;
