@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.41</small>
+<small id="version">HourlyXP v1.4.42</small>
 
 <style>
 :root {
@@ -225,8 +225,7 @@ header {
 
 <div class="section" id="log"></div>
 
-<button onclick="alert('clicked')">Start New Day</button>
-
+<button class="danger" onclick="resetDay()">Start New Day</button>
 
 <button class="secondary" onclick="location.href='history.html'">
   View History
@@ -360,6 +359,30 @@ async function endShift() {
 
   save();
   render();
+}
+
+async function startNewDay() {
+
+  // End active shift if one exists
+  if (data.activeShift) {
+    await endShift();
+  }
+
+  // Clear today's jobs locally
+  data.jobs = [];
+
+  // Optional: reset local daily stats if you track them
+  currentEarned = 0;
+
+  save();
+  render();
+  
+  await fetch("https://hourlyxp-server.onrender.com/resetDaily", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ userId })
+});
+
 }
 
 function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
