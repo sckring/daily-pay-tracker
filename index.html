@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.45</small>
+<small id="version">HourlyXP v1.4.46</small>
 
 <style>
 :root {
@@ -403,8 +403,18 @@ function startTimer() {
 
 function getCurrentEarned() {
   if (!data.activeShift) return 0;
-  const elapsed = (Date.now() - data.activeShift.startTime) / 1000;
-  return (data.activeShift.rate * (data.activeShift.multiplier || 1) / 3600) * elapsed;
+
+  const start = new Date(data.activeShift.startTime).getTime();
+  const now = Date.now();
+
+  const elapsed = (now - start) / 1000;
+
+  return (
+    (Number(data.activeShift.rate) *
+      Number(data.activeShift.multiplier || 1) /
+      3600) *
+    elapsed
+  );
 }
 
 // --- Render ---
