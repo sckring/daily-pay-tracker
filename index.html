@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.46</small>
+<small id="version">HourlyXP v1.4.47</small>
 
 <style>
 :root {
@@ -629,6 +629,14 @@ window.addEventListener("load", async () => {
 	$("dailyGoal").value = data.dailyGoal || "";
 	$("weeklyGoal").value = data.weeklyGoal || "";
   }
+  
+  if (
+  "Notification" in window &&
+  Notification.permission === "default" &&
+  !data.notificationPrompted
+) {
+  maybeShowNotificationPrompt();
+}
 
   notify.init();
 
