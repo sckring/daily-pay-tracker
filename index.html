@@ -248,7 +248,9 @@ let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   dayId: Date.now(),
   notificationPrompted: false,
   dailyGoalMet: false,
-  weeklyGoalMet: false
+  weeklyGoalMet: false,
+  dailyGoal: 0,
+  weeklyGoal: 0
 };
 
 const $ = id => document.getElementById(id);
@@ -282,7 +284,7 @@ async function startShift() {
 
   if (!job || !rate || rate <= 0) return alert("Enter a valid job name and hourly rate");
 
-  let startTime = Date.now();
+  let startTime = new Date().toISOString();
   if (manualInput && manualInput.value) {
   const [h, m] = manualInput.value.split(":").map(Number);
   const d = new Date();
@@ -291,7 +293,7 @@ async function startShift() {
   // If user selects a future time, assume yesterday
   if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
 
-  startTime = d.getTime();
+  startTime = d.toISOString();
 
   // Keep input visible for reference, don’t hide automatically
   // manualInput.style.display = "none";  <-- removed
@@ -311,8 +313,6 @@ async function startShift() {
     userId,
     startTime,
     hourlyRate: rate,
-    dailyGoal: parseFloat($("dailyGoal").value) || 0,
-    weeklyGoal: parseFloat($("weeklyGoal").value) || 0
   })
 });
 
@@ -386,7 +386,8 @@ async function startNewDay() {
 }
 
 function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
-  const seconds = (endTime - startTime) / 1000;
+  const seconds =
+  (new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000;
   const earned = (rate * (multiplier || 1) / 3600) * seconds;
   return { job, rate, multiplier, startTime, endTime, seconds, earned, date: new Date(startTime).toISOString().split("T")[0], dayId };
 }
@@ -427,7 +428,7 @@ function renderLiveEarnings() {
 
 // --- Goals ---
 function renderGoals(total) {
-  const dailyGoal = parseFloat($("dailyGoal").value);
+  const dailyGoal = data.dailyGoal;
   if (dailyGoal) {
     const remaining = Math.max(dailyGoal - total, 0);
     const pct = Math.min((total / dailyGoal) * 100, 100);
@@ -448,7 +449,7 @@ function renderWeekly() {
   let total = weekJobs.reduce((s,j)=>s+j.earned,0) + weekMisc.reduce((s,m)=>s+m.amount,0);
   if (data.activeShift && data.activeShift.startTime >= weekAgo) total += currentEarned;
 
-  const goal = parseFloat($("weeklyGoal").value);
+  const goal = data.weeklyGoal;
   $("weeklyStats").innerHTML = `Weekly Total: $${total.toFixed(2)}<br>Jobs This Week: ${weekJobs.length}`;
   if (goal) {
     $("weeklyRemain").textContent = Math.max(goal - total,0).toFixed(2);
@@ -615,6 +616,8 @@ window.addEventListener("load", async () => {
   if ("serviceWorker" in navigator) {
     await navigator.serviceWorker.register("service-worker.js");
     await navigator.serviceWorker.ready;
+	$("dailyGoal").value = data.dailyGoal || "";
+	$("weeklyGoal").value = data.weeklyGoal || "";
   }
 
   notify.init();
@@ -623,6 +626,36 @@ window.addEventListener("load", async () => {
   if(saved) data = JSON.parse(saved);
 
   render();
+ });
+ 
+  $("dailyGoal").addEventListener("input", async e => {
+  data.dailyGoal = parseFloat(e.target.value) || 0;
+  save();
+
+  await fetch("https://hourlyxp-server.onrender.com/updateGoals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      dailyGoal: data.dailyGoal,
+      weeklyGoal: data.weeklyGoal
+    })
+  });
+});
+
+$("weeklyGoal").addEventListener("input", async e => {
+  data.weeklyGoal = parseFloat(e.target.value) || 0;
+  save();
+
+  await fetch("https://hourlyxp-server.onrender.com/updateGoals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      dailyGoal: data.dailyGoal,
+      weeklyGoal: data.weeklyGoal
+    })
+  });
 });
 </script>
 
