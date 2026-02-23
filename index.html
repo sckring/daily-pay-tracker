@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.48</small>
+<small id="version">HourlyXP v1.4.49</small>
 
 <style>
 :root {
@@ -273,31 +273,24 @@ async function startShift() {
 
   if (data.activeShift) return alert("You already have an active job.");
 
-  const jobInput = $("jobName");
-  const rateInput = $("rate");
-  const manualInput = $("manualStartTime");
-  const multiplierInput = $("multiplier");
-
-  const job = jobInput.value.trim();
-  const rate = parseFloat(rateInput.value);
-  const multiplier = parseFloat(multiplierInput.value || 1);
+  const job = $("jobName").value.trim();
+  const rate = parseFloat($("rate").value);
+  const multiplier = parseFloat($("multiplier").value || 1);
 
   if (!job || !rate || rate <= 0) return alert("Enter a valid job name and hourly rate");
 
-  let startTime = new Date().toISOString();
+  let startTime = Date.now(); // <-- numeric timestamp
+
+  const manualInput = $("manualStartTime");
   if (manualInput && manualInput.value) {
-  const [h, m] = manualInput.value.split(":").map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
+    const [h, m] = manualInput.value.split(":").map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
 
-  // If user selects a future time, assume yesterday
-  if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
+    if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
 
-  startTime = d.toISOString();
-
-  // Keep input visible for reference, don’t hide automatically
-  // manualInput.style.display = "none";  <-- removed
-}
+    startTime = d.getTime(); // <-- numeric timestamp
+  }
 
   data.activeShift = { job, rate, multiplier, startTime, dayId: data.dayId };
   currentEarned = 0;
@@ -306,20 +299,20 @@ async function startShift() {
   render();
   save();
 
+  // Send numeric timestamp to server
   const resp = await fetch("https://hourlyxp-server.onrender.com/startShift", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    userId,
-    startTime,
-    hourlyRate: rate
-  })
-});
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      startTime,      // already a number
+      hourlyRate: rate
+    })
+  });
 
-const serverShift = await resp.json();
+  const serverShift = await resp.json();
 
-// Store DB shift ID locally
-data.activeShift.serverShiftId = serverShift.id;
+  data.activeShift.serverShiftId = serverShift.id;
 
   if (!data.notificationPrompted && Notification.permission === "default") {
     maybeShowNotificationPrompt();
@@ -329,25 +322,22 @@ data.activeShift.serverShiftId = serverShift.id;
 async function endShift() {
   if (!data.activeShift) return;
 
-  // Save server shift ID before clearing
   const shiftId = data.activeShift.serverShiftId;
+  const endTime = Date.now(); // <-- numeric timestamp
 
-  const endTime = new Date().toISOString();
-
-  // Notify backend first
   await fetch("https://hourlyxp-server.onrender.com/endShift", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       shiftId,
-      endTime
+      endTime // numeric timestamp
     })
   });
 
   // Local calculations
   const entry = createJobEntry({
     ...data.activeShift,
-    endTime: Date.now()
+    endTime
   });
 
   data.jobs.push(entry);
@@ -386,10 +376,19 @@ async function startNewDay() {
 }
 
 function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
-  const seconds =
-  (new Date(endTime).getTime() - new Date(startTime).getTime()) / 1000;
+  const seconds = (endTime - startTime) / 1000; // timestamps are numeric
   const earned = (rate * (multiplier || 1) / 3600) * seconds;
-  return { job, rate, multiplier, startTime, endTime, seconds, earned, date: new Date(startTime).toISOString().split("T")[0], dayId };
+  return {
+    job,
+    rate,
+    multiplier,
+    startTime,
+    endTime,
+    seconds,
+    earned,
+    date: new Date(startTime).toISOString().split("T")[0],
+    dayId
+  };
 }
 
 // --- Timer ---
