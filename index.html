@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.49</small>
+<small id="version">HourlyXP v1.4.50</small>
 
 <style>
 :root {
@@ -352,43 +352,23 @@ async function endShift() {
 }
 
 async function startNewDay() {
+  await ensureUser(); // 👈 ADD THIS
 
-  // End active shift if one exists
   if (data.activeShift) {
     await endShift();
   }
 
-  // Clear today's jobs locally
   data.jobs = [];
-
-  // Optional: reset local daily stats if you track them
   currentEarned = 0;
 
   save();
   render();
-  
+
   await fetch("https://hourlyxp-server.onrender.com/resetDaily", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ userId: data.userId })
-});
-
-}
-
-function createJobEntry({ job, rate, multiplier, startTime, endTime, dayId }) {
-  const seconds = (endTime - startTime) / 1000; // timestamps are numeric
-  const earned = (rate * (multiplier || 1) / 3600) * seconds;
-  return {
-    job,
-    rate,
-    multiplier,
-    startTime,
-    endTime,
-    seconds,
-    earned,
-    date: new Date(startTime).toISOString().split("T")[0],
-    dayId
-  };
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId }) // 👈 NOT data.userId
+  });
 }
 
 // --- Timer ---
@@ -646,6 +626,8 @@ window.addEventListener("load", async () => {
  });
  
   $("dailyGoal").addEventListener("input", async e => {
+  await ensureUser(); // 👈 ADD
+
   data.dailyGoal = parseFloat(e.target.value) || 0;
   save();
 
@@ -661,6 +643,8 @@ window.addEventListener("load", async () => {
 });
 
 $("weeklyGoal").addEventListener("input", async e => {
+	await ensureUser();
+	
   data.weeklyGoal = parseFloat(e.target.value) || 0;
   save();
 
