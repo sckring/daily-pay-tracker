@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.57</small>
+<small id="version">HourlyXP v1.4.58</small>
 
 <style>
 :root {
@@ -279,7 +279,7 @@ async function startShift() {
 
   if (!job || !rate || rate <= 0) return alert("Enter a valid job name and hourly rate");
 
-  let startTime = Date.now(); // <-- numeric timestamp
+  let startTime = Date.now(); // numeric timestamp
 
   const manualInput = $("manualStartTime");
   if (manualInput && manualInput.value) {
@@ -289,7 +289,7 @@ async function startShift() {
 
     if (d.getTime() > Date.now()) d.setDate(d.getDate() - 1);
 
-    startTime = d.getTime(); // <-- numeric timestamp
+    startTime = d.getTime();
   }
 
   data.activeShift = { job, rate, multiplier, startTime, dayId: data.dayId };
@@ -299,19 +299,18 @@ async function startShift() {
   render();
   save();
 
-  // Send numeric timestamp to server
+  // Send to server
   const resp = await fetch("https://hourlyxp-server.onrender.com/startShift", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       userId,
-      startTime,      // already a number
+      startTime, // numeric
       hourlyRate: rate
     })
   });
 
   const serverShift = await resp.json();
-
   data.activeShift.serverShiftId = serverShift.id;
 
   if (!data.notificationPrompted && Notification.permission === "default") {
@@ -340,7 +339,7 @@ async function endShift() {
     return alert("Network error.");
   }
 
-  // --- Safe numeric calculation ---
+  // Safe numeric calculation
   const startTime = Number(data.activeShift.startTime);
   const rate = Number(data.activeShift.rate);
   const multiplier = Number(data.activeShift.multiplier || 1);
@@ -353,12 +352,11 @@ async function endShift() {
 
   if (isNaN(earned)) return alert("Earnings calculation failed.");
 
-  // --- Push job into history ---
   const completedJob = {
     ...data.activeShift,
     startTime,
     endTime: endTimeNum,
-    earned,          // important for correct calculations
+    earned,      // critical for logs & totals
     rate,
     multiplier,
     dayId: data.activeShift.dayId
@@ -366,11 +364,9 @@ async function endShift() {
 
   data.jobs.push(completedJob);
 
-  // --- Clear active shift ---
   data.activeShift = null;
   currentEarned = 0;
-  if (timer) clearInterval(timer);
-  timer = null;
+  if (timer) clearInterval(timer); timer = null;
 
   save();
   render();
@@ -379,22 +375,24 @@ async function endShift() {
 }
 
 async function startNewDay() {
-  await ensureUser(); // 👈 ADD THIS
+  if (data.activeShift) await endShift();
 
-  if (data.activeShift) {
-    await endShift();
-  }
-
-  data.jobs = [];
+  // Increment dayId for new day
+  data.dayId = Date.now();
   currentEarned = 0;
+
+  // Reset daily goal flag only
+  data.dailyGoalMet = false;
 
   save();
   render();
 
+  // Notify server to reset daily notifications only
+  const userId = localStorage.getItem("userId");
   await fetch("https://hourlyxp-server.onrender.com/resetDaily", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId }) // 👈 NOT data.userId
+    body: JSON.stringify({ userId })
   });
 }
 
@@ -463,7 +461,7 @@ function renderWeekly() {
   const currentWeekId = getWeekId();
   if (data.weekId !== currentWeekId) {
     data.weekId = currentWeekId;
-    data.weeklyGoalMet = false;
+    data.weeklyGoalMet = false; // weekly flags reset only when new week starts
     save();
   }
 
@@ -543,23 +541,33 @@ function renderStaticUI() {
 }
 
 function renderLog() {
-  const jobEntries = data.jobs.map((job,i)=>{
-    const seconds=job.seconds||0, earned=job.earned||0;
-    const multLabel = job.multiplier!==1?` (${job.multiplier}×)`:``;
-    const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60);
+  // Only show today's jobs and misc
+  const todayJobs = data.jobs.filter(j => j.dayId === data.dayId);
+  const todayMisc = data.misc.filter(m => m.dayId === data.dayId);
+
+  const jobEntries = todayJobs.map((job, i) => {
+    const seconds = job.seconds || Math.floor((job.endTime - job.startTime)/1000);
+    const earned = Number(job.earned || 0);
+    const multLabel = job.multiplier !== 1 ? ` (${job.multiplier}×)` : ``;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+
     return `<div class="log-item">
-      <strong>${job.job}${multLabel}</strong><br>$${earned.toFixed(2)} — ${h}h ${m}m<br>
+      <strong>${job.job}${multLabel}</strong><br>
+      $${earned.toFixed(2)} — ${h}h ${m}m<br>
       <button class="secondary" onclick="editEndTime(${i})">Edit End Time</button>
       <button class="danger" onclick="deleteJob(${i})">Delete Job</button>
     </div>`;
   });
 
-  const miscEntries = data.misc.map(m=>{
+  const miscEntries = todayMisc.map(m => {
     const d = new Date(m.date).toLocaleDateString();
-    return `<div class="log-item"><strong>${m.label}</strong><br>+$${m.amount.toFixed(2)} — ${d}</div>`;
+    return `<div class="log-item">
+      <strong>${m.label}</strong><br>+$${Number(m.amount).toFixed(2)} — ${d}
+    </div>`;
   });
 
-  $("log").innerHTML = [...miscEntries,...jobEntries].join("");
+  $("log").innerHTML = [...miscEntries, ...jobEntries].join("");
 }
 
 // --- Notifications ---
