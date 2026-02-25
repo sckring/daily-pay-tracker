@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.50</small>
+<small id="version">HourlyXP v1.4.51</small>
 
 <style>
 :root {
@@ -320,21 +320,31 @@ async function startShift() {
 }
 
 async function endShift() {
-  if (!data.activeShift) return;
+  if (!data.activeShift) {
+    alert("No active shift found.");
+    return;
+  }
 
   const shiftId = data.activeShift.serverShiftId;
-  const endTime = Date.now(); // <-- numeric timestamp
 
-  await fetch("https://hourlyxp-server.onrender.com/endShift", {
+  if (!shiftId) {
+    console.error("Missing serverShiftId!", data.activeShift);
+    alert("Shift ID missing. Reload the app.");
+    return;
+  }
+
+  const endTime = Date.now();
+
+  const resp = await fetch("https://hourlyxp-server.onrender.com/endShift", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      shiftId,
-      endTime // numeric timestamp
-    })
+    body: JSON.stringify({ shiftId, endTime })
   });
 
-  // Local calculations
+  const text = await resp.text();
+  console.log("End shift response:", text);
+
+  // Continue local cleanup
   const entry = createJobEntry({
     ...data.activeShift,
     endTime
@@ -602,6 +612,7 @@ function urlBase64ToUint8Array(base64String) {
 
 // --- Init ---
 window.addEventListener("load", async () => {
+	await ensureUser();
   if ("serviceWorker" in navigator) {
     await navigator.serviceWorker.register("service-worker.js");
     await navigator.serviceWorker.ready;
