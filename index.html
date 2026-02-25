@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.52</small>
+<small id="version">HourlyXP v1.4.53</small>
 
 <style>
 :root {
@@ -325,17 +325,13 @@ async function endShift() {
     return;
   }
 
-  alert("Ending shift...");
-
   if (!data.activeShift.serverShiftId) {
-    alert("ERROR: No serverShiftId found.");
+    alert("Missing server shift ID.");
     return;
   }
 
   const shiftId = data.activeShift.serverShiftId;
   const endTime = Date.now();
-
-  alert("Sending to server...");
 
   try {
     const resp = await fetch("https://hourlyxp-server.onrender.com/endShift", {
@@ -344,23 +340,44 @@ async function endShift() {
       body: JSON.stringify({ shiftId, endTime })
     });
 
-    alert("Server responded: " + resp.status);
-
     if (!resp.ok) {
       const text = await resp.text();
       alert("Server error: " + text);
       return;
     }
 
-    alert("Shift ended successfully.");
   } catch (err) {
     alert("Network error.");
     return;
   }
 
+  // Calculate earnings locally
+  const hoursWorked =
+    (endTime - data.activeShift.startTime) / 1000 / 60 / 60;
+
+  const totalEarned =
+    hoursWorked * data.activeShift.hourlyRate;
+
+  const completedJob = {
+    ...data.activeShift,
+    endTime,
+    totalEarned
+  };
+
+  // Push to job history
+  data.jobs.push(completedJob);
+
+  // Clear active shift
   data.activeShift = null;
+  currentEarned = 0;
+
+  clearInterval(timer);
+  timer = null;
+
   save();
   render();
+
+  alert("Shift logged successfully.");
 }
 
 async function startNewDay() {
