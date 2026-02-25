@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.59</small>
+<small id="version">HourlyXP v1.4.60</small>
 
 <style>
 :root {
@@ -375,19 +375,24 @@ async function endShift() {
 }
 
 async function startNewDay() {
-  if (data.activeShift) await endShift();
+  // End active shift first, safely
+  if (data.activeShift) {
+    await endShift(); // uses serverShiftId before we change anything
+  }
 
-  // Increment dayId for new day
+  // Increment dayId for the new day
   data.dayId = Date.now();
-  currentEarned = 0;
 
-  // Reset daily goal flag only
+  // Reset daily goal flags only
   data.dailyGoalMet = false;
+
+  // Keep jobs/misc intact for history — don’t remove them
+  currentEarned = 0;
 
   save();
   render();
 
-  // Notify server to reset daily notifications only
+  // Notify server to reset daily notifications
   const userId = localStorage.getItem("userId");
   await fetch("https://hourlyxp-server.onrender.com/resetDaily", {
     method: "POST",
