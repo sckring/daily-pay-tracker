@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.53</small>
+<small id="version">HourlyXP v1.4.54</small>
 
 <style>
 :root {
@@ -356,7 +356,7 @@ async function endShift() {
     (endTime - data.activeShift.startTime) / 1000 / 60 / 60;
 
   const totalEarned =
-    hoursWorked * data.activeShift.hourlyRate;
+  hoursWorked * data.activeShift.rate * (data.activeShift.multiplier || 1);
 
   const completedJob = {
     ...data.activeShift,
