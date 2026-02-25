@@ -1,3 +1,80 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Income History</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 520px;
+  background: #0b1220;
+  border-radius: 22px;
+  padding: 22px;
+}
+
+h1 { text-align: center; margin-top: 0 }
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 14px;
+  background: #111827;
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+button.primary {
+  background: linear-gradient(135deg,#14f1d9,#38bdf8);
+  color: #020617;
+}
+
+.section {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #1f2937;
+}
+
+.entry {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 10px;
+}
+
+.total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #22c55e;
+}
+</style>
+
+</head>
+
+<body>
+<div class="container">
+
+<h1>Income History</h1>
+
+<button class="primary" onclick="showWeekly()">Weekly View</button> <button onclick="showMonthly()">Monthly View</button> <button onclick="location.href='index.html'">⬅ Back</button>
+
+<div id="content"></div>
+
+</div>
+
 <script>
 const data = JSON.parse(localStorage.getItem("hourlyXP_v1")) || { jobs: [], misc: [], dayId: Date.now() };
 const content = document.getElementById("content");
@@ -64,3 +141,6 @@ function formatItem(i) {
 // Default view
 showWeekly();
 </script>
+
+</body>
+</html>
