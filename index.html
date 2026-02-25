@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.56</small>
+<small id="version">HourlyXP v1.4.57</small>
 
 <style>
 :root {
@@ -340,7 +340,7 @@ async function endShift() {
     return alert("Network error.");
   }
 
-  /* --- Safe numeric calculation --- */
+  // --- Safe numeric calculation ---
   const startTime = Number(data.activeShift.startTime);
   const rate = Number(data.activeShift.rate);
   const multiplier = Number(data.activeShift.multiplier || 1);
@@ -353,12 +353,12 @@ async function endShift() {
 
   if (isNaN(earned)) return alert("Earnings calculation failed.");
 
-  /* --- Push job into history --- */
+  // --- Push job into history ---
   const completedJob = {
     ...data.activeShift,
     startTime,
     endTime: endTimeNum,
-    earned,          // <-- this is critical
+    earned,          // important for correct calculations
     rate,
     multiplier,
     dayId: data.activeShift.dayId
@@ -366,10 +366,11 @@ async function endShift() {
 
   data.jobs.push(completedJob);
 
-  /* --- Clear active shift --- */
+  // --- Clear active shift ---
   data.activeShift = null;
   currentEarned = 0;
-  if (timer) clearInterval(timer); timer = null;
+  if (timer) clearInterval(timer);
+  timer = null;
 
   save();
   render();
@@ -435,15 +436,11 @@ function renderLiveEarnings() {
 
   const todayJobs = data.jobs.filter(j => j.dayId === data.dayId);
   const todayMisc = data.misc.filter(m => m.dayId === data.dayId);
-  const dailyTotal =
-  todayJobs.reduce((s, j) => s + Number(j.earned || 0), 0) +
-  todayMisc.reduce((s, m) => s + Number(m.amount || 0), 0) +
-  currentEarned;
 
-const weekJobs = data.jobs.filter(j => new Date(j.startTime).getTime() >= weekAgo);
-const weekTotal =
-  weekJobs.reduce((s, j) => s + Number(j.earned || 0), 0) +
-  weekMisc.reduce((s, m) => s + Number(m.amount || 0), 0);
+  const dailyTotal =
+    todayJobs.reduce((s, j) => s + Number(j.earned || 0), 0) +
+    todayMisc.reduce((s, m) => s + Number(m.amount || 0), 0) +
+    currentEarned;
 
   $("daily").textContent = dailyTotal.toFixed(2);
   renderGoals(dailyTotal);
@@ -464,21 +461,37 @@ function renderGoals(total) {
 
 function renderWeekly() {
   const currentWeekId = getWeekId();
-  if (data.weekId !== currentWeekId) { data.weekId = currentWeekId; data.weeklyGoalMet = false; save(); }
+  if (data.weekId !== currentWeekId) {
+    data.weekId = currentWeekId;
+    data.weeklyGoalMet = false;
+    save();
+  }
 
-  const weekAgo = Date.now() - 604800000;
-  const weekJobs = data.jobs.filter(j => j.startTime >= weekAgo);
+  const weekAgo = Date.now() - 604800000; // 7 days
+  const weekJobs = data.jobs.filter(j => Number(j.startTime) >= weekAgo);
   const weekMisc = data.misc.filter(m => new Date(m.date).getTime() >= weekAgo);
-  let total = weekJobs.reduce((s,j)=>s+j.earned,0) + weekMisc.reduce((s,m)=>s+m.amount,0);
-  if (data.activeShift && data.activeShift.startTime >= weekAgo) total += currentEarned;
+
+  const total =
+    weekJobs.reduce((s, j) => s + Number(j.earned || 0), 0) +
+    weekMisc.reduce((s, m) => s + Number(m.amount || 0), 0) +
+    (data.activeShift && Number(data.activeShift.startTime) >= weekAgo ? currentEarned : 0);
 
   const goal = data.weeklyGoal;
+
   $("weeklyStats").innerHTML = `Weekly Total: $${total.toFixed(2)}<br>Jobs This Week: ${weekJobs.length}`;
+
   if (goal) {
-    $("weeklyRemain").textContent = Math.max(goal - total,0).toFixed(2);
-    $("weeklyBar").style.width = Math.min((total/goal)*100,100)+"%";
-    if (total>=goal && !data.weeklyGoalMet) { data.weeklyGoalMet=true; save(); }
-  } else { $("weeklyRemain").textContent="—"; $("weeklyBar").style.width="0%"; }
+    $("weeklyRemain").textContent = Math.max(goal - total, 0).toFixed(2);
+    $("weeklyBar").style.width = Math.min((total / goal) * 100, 100) + "%";
+    if (total >= goal && !data.weeklyGoalMet) {
+      data.weeklyGoalMet = true;
+      save();
+      notify.weeklyGoal(total);
+    }
+  } else {
+    $("weeklyRemain").textContent = "—";
+    $("weeklyBar").style.width = "0%";
+  }
 }
 
 // --- Misc Income ---
