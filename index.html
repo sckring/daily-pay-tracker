@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.51</small>
+<small id="version">HourlyXP v1.4.52</small>
 
 <style>
 :root {
@@ -321,42 +321,44 @@ async function startShift() {
 
 async function endShift() {
   if (!data.activeShift) {
-    alert("No active shift found.");
+    alert("No active shift.");
+    return;
+  }
+
+  alert("Ending shift...");
+
+  if (!data.activeShift.serverShiftId) {
+    alert("ERROR: No serverShiftId found.");
     return;
   }
 
   const shiftId = data.activeShift.serverShiftId;
+  const endTime = Date.now();
 
-  if (!shiftId) {
-    console.error("Missing serverShiftId!", data.activeShift);
-    alert("Shift ID missing. Reload the app.");
+  alert("Sending to server...");
+
+  try {
+    const resp = await fetch("https://hourlyxp-server.onrender.com/endShift", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shiftId, endTime })
+    });
+
+    alert("Server responded: " + resp.status);
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      alert("Server error: " + text);
+      return;
+    }
+
+    alert("Shift ended successfully.");
+  } catch (err) {
+    alert("Network error.");
     return;
   }
 
-  const endTime = Date.now();
-
-  const resp = await fetch("https://hourlyxp-server.onrender.com/endShift", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ shiftId, endTime })
-  });
-
-  const text = await resp.text();
-  console.log("End shift response:", text);
-
-  // Continue local cleanup
-  const entry = createJobEntry({
-    ...data.activeShift,
-    endTime
-  });
-
-  data.jobs.push(entry);
   data.activeShift = null;
-  currentEarned = 0;
-
-  clearInterval(timer);
-  timer = null;
-
   save();
   render();
 }
