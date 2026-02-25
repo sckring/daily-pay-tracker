@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.55</small>
+<small id="version">HourlyXP v1.4.56</small>
 
 <style>
 :root {
@@ -320,15 +320,8 @@ async function startShift() {
 }
 
 async function endShift() {
-  if (!data.activeShift) {
-    alert("No active shift.");
-    return;
-  }
-
-  if (!data.activeShift.serverShiftId) {
-    alert("Missing server shift ID.");
-    return;
-  }
+  if (!data.activeShift) return alert("No active shift.");
+  if (!data.activeShift.serverShiftId) return alert("Missing serverShiftId.");
 
   const shiftId = data.activeShift.serverShiftId;
   const endTime = Date.now();
@@ -339,63 +332,44 @@ async function endShift() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ shiftId, endTime })
     });
-
     if (!resp.ok) {
       const text = await resp.text();
-      alert("Server error: " + text);
-      return;
+      return alert("Server error: " + text);
     }
-
   } catch (err) {
-    alert("Network error.");
-    return;
+    return alert("Network error.");
   }
 
-  /* ============================= */
-  /* SAFE NUMERIC CALCULATION      */
-  /* ============================= */
-
+  /* --- Safe numeric calculation --- */
   const startTime = Number(data.activeShift.startTime);
   const rate = Number(data.activeShift.rate);
   const multiplier = Number(data.activeShift.multiplier || 1);
   const endTimeNum = Number(endTime);
 
-  if (!startTime || !rate) {
-    alert("Invalid shift data.");
-    return;
-  }
+  if (!startTime || !rate) return alert("Invalid shift data.");
 
-  const hoursWorked = (endTimeNum - startTime) / 1000 / 60 / 60;
-  const totalEarned = hoursWorked * rate * multiplier;
+  const seconds = (endTimeNum - startTime) / 1000;
+  const earned = (rate * multiplier / 3600) * seconds;
 
-  if (isNaN(totalEarned)) {
-    alert("Earnings calculation failed.");
-    return;
-  }
+  if (isNaN(earned)) return alert("Earnings calculation failed.");
 
+  /* --- Push job into history --- */
   const completedJob = {
     ...data.activeShift,
     startTime,
     endTime: endTimeNum,
+    earned,          // <-- this is critical
     rate,
     multiplier,
-    totalEarned
+    dayId: data.activeShift.dayId
   };
 
-  /* ============================= */
-  /* SAVE LOCALLY                  */
-  /* ============================= */
-
-  data.jobs = data.jobs || [];
   data.jobs.push(completedJob);
 
+  /* --- Clear active shift --- */
   data.activeShift = null;
   currentEarned = 0;
-
-  if (timer) {
-    clearInterval(timer);
-    timer = null;
-  }
+  if (timer) clearInterval(timer); timer = null;
 
   save();
   render();
@@ -465,6 +439,11 @@ function renderLiveEarnings() {
   todayJobs.reduce((s, j) => s + Number(j.earned || 0), 0) +
   todayMisc.reduce((s, m) => s + Number(m.amount || 0), 0) +
   currentEarned;
+
+const weekJobs = data.jobs.filter(j => new Date(j.startTime).getTime() >= weekAgo);
+const weekTotal =
+  weekJobs.reduce((s, j) => s + Number(j.earned || 0), 0) +
+  weekMisc.reduce((s, m) => s + Number(m.amount || 0), 0);
 
   $("daily").textContent = dailyTotal.toFixed(2);
   renderGoals(dailyTotal);
