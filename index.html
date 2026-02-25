@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.54</small>
+<small id="version">HourlyXP v1.4.55</small>
 
 <style>
 :root {
@@ -351,28 +351,51 @@ async function endShift() {
     return;
   }
 
-  // Calculate earnings locally
-  const hoursWorked =
-    (endTime - data.activeShift.startTime) / 1000 / 60 / 60;
+  /* ============================= */
+  /* SAFE NUMERIC CALCULATION      */
+  /* ============================= */
 
-  const totalEarned =
-  hoursWorked * data.activeShift.rate * (data.activeShift.multiplier || 1);
+  const startTime = Number(data.activeShift.startTime);
+  const rate = Number(data.activeShift.rate);
+  const multiplier = Number(data.activeShift.multiplier || 1);
+  const endTimeNum = Number(endTime);
+
+  if (!startTime || !rate) {
+    alert("Invalid shift data.");
+    return;
+  }
+
+  const hoursWorked = (endTimeNum - startTime) / 1000 / 60 / 60;
+  const totalEarned = hoursWorked * rate * multiplier;
+
+  if (isNaN(totalEarned)) {
+    alert("Earnings calculation failed.");
+    return;
+  }
 
   const completedJob = {
     ...data.activeShift,
-    endTime,
+    startTime,
+    endTime: endTimeNum,
+    rate,
+    multiplier,
     totalEarned
   };
 
-  // Push to job history
+  /* ============================= */
+  /* SAVE LOCALLY                  */
+  /* ============================= */
+
+  data.jobs = data.jobs || [];
   data.jobs.push(completedJob);
 
-  // Clear active shift
   data.activeShift = null;
   currentEarned = 0;
 
-  clearInterval(timer);
-  timer = null;
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
 
   save();
   render();
@@ -438,7 +461,10 @@ function renderLiveEarnings() {
 
   const todayJobs = data.jobs.filter(j => j.dayId === data.dayId);
   const todayMisc = data.misc.filter(m => m.dayId === data.dayId);
-  const dailyTotal = todayJobs.reduce((s,j)=>s+j.earned,0) + todayMisc.reduce((s,m)=>s+m.amount,0) + currentEarned;
+  const dailyTotal =
+  todayJobs.reduce((s, j) => s + Number(j.earned || 0), 0) +
+  todayMisc.reduce((s, m) => s + Number(m.amount || 0), 0) +
+  currentEarned;
 
   $("daily").textContent = dailyTotal.toFixed(2);
   renderGoals(dailyTotal);
