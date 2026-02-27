@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.61</small>
+<small id="version">HourlyXP v1.4.62</small>
 
 <style>
 :root {
@@ -662,15 +662,16 @@ async function subscribeToPush() {
   }
 }
 
-async function acceptNotifications(){
-  $("notifyModal").style.display="none";
-  data.notificationPrompted=true;
+async function acceptNotifications() {
+  // Request permission FIRST — no async before it
+  const perm = await Notification.requestPermission();
+
+  data.notificationPrompted = true;
   save();
+  $("notifyModal").style.display = "none";
 
-  await notify.requestPermission();
-
-  if (Notification.permission === "granted") {
-    await ensureUser();   // make sure userId exists
+  if (perm === "granted") {
+    await ensureUser();
     await subscribeToPush();
   }
 }
