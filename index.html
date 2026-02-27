@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.60</small>
+<small id="version">HourlyXP v1.4.61</small>
 
 <style>
 :root {
@@ -312,6 +312,7 @@ async function startShift() {
 
   const serverShift = await resp.json();
   data.activeShift.serverShiftId = serverShift.id;
+  save();
 
   if (!data.notificationPrompted && Notification.permission === "default") {
     maybeShowNotificationPrompt();
@@ -366,7 +367,10 @@ async function endShift() {
 
   data.activeShift = null;
   currentEarned = 0;
-  if (timer) clearInterval(timer); timer = null;
+  if (timer) {
+  clearInterval(timer);
+  timer = null;
+}
 
   save();
   render();
@@ -599,39 +603,64 @@ function toggleManualTime() {
 
 async function subscribeToPush() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    alert("Push not supported");
+    alert("Push notifications are not supported on this device.");
     return;
   }
 
-  const registration = await navigator.serviceWorker.ready;
-
-  let subscription = await registration.pushManager.getSubscription();
-
-  if (!subscription) {
-    try {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
-      });
-    } catch (err) {
-      alert("Subscription failed: " + err.message);
-      return;
-    }
+  if (Notification.permission !== "granted") {
+    alert("Notification permission not granted.");
+    return;
   }
 
-  const userId = localStorage.getItem("userId");
+  try {
+    await ensureUser();
+    const registration = await navigator.serviceWorker.ready;
 
-  const resp = await fetch("https://hourlyxp-server.onrender.com/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, subscription })
-  });
+    // Check for existing subscription
+    let subscription = await registration.pushManager.getSubscription();
 
-  const text = await resp.text();
-  alert("Server saw: " + text);
+    // If a subscription exists, verify it works
+    if (subscription) {
+      try {
+        // Try sending it to server to confirm it’s still valid
+        await fetch("https://hourlyxp-server.onrender.com/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, subscription })
+        });
+
+        console.log("Existing subscription verified.");
+        return; // No need to re-subscribe
+      } catch {
+        // If it fails, unsubscribe and recreate
+        await subscription.unsubscribe();
+        subscription = null;
+      }
+    }
+
+    // Create new subscription
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY)
+    });
+
+    // Send to server
+    const resp = await fetch("https://hourlyxp-server.onrender.com/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, subscription })
+    });
+
+    if (!resp.ok) {
+      throw new Error("Server failed to store subscription.");
+    }
+
+    console.log("Push subscription successful.");
+  } catch (err) {
+    console.error("Push subscription error:", err);
+    alert("Push setup failed. Try again.");
+  }
 }
-
-function maybeShowNotificationPrompt() { if(!("Notification" in window)) return; if(Notification.permission==="default" && !data.notificationPrompted) $("notifyModal").style.display="flex"; }
 
 async function acceptNotifications(){
   $("notifyModal").style.display="none";
