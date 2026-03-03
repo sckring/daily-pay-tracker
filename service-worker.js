@@ -1,6 +1,6 @@
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open("pay-tracker-v14").then(cache =>
+    caches.open("pay-tracker-v15").then(cache =>
       cache.addAll([
         "./",
         "./index.html",
@@ -16,22 +16,6 @@ self.addEventListener("install", e => {
 self.addEventListener("fetch", e => {
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request))
-  );
-});
-
-self.addEventListener("push", event => {
-  if (!event.data) return;
-
-  const data = event.data.json();
-
-  const options = {
-    body: data.body,
-    icon: "icon-192.png",
-    badge: "icon-192.png"
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
   );
 });
 
