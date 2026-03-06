@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.65</small>
+<small id="version">HourlyXP v1.4.66</small>
 
 <style>
 :root {
@@ -226,6 +226,7 @@ header {
 <div class="section" id="log"></div>
 
 <button class="danger" onclick="startNewDay()">Start New Day</button>
+<button onclick="startNewWeek()">Start New Week</button>
 
 <button class="secondary" onclick="location.href='history.html'">
   View History
@@ -405,6 +406,34 @@ async function startNewDay() {
   });
 }
 
+async function startNewWeek() {
+  const userId = localStorage.getItem("userId");
+
+  if (!userId) {
+    alert("User not found");
+    return;
+  }
+
+  try {
+    const res = await fetch("/resetWeekly", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ userId })
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to reset week");
+    }
+
+    alert("New week started!");
+    location.reload();
+  } catch (err) {
+    console.error(err);
+    alert("Could not reset week");
+  }
+}
 // --- Timer ---
 function startTimer() {
   if (timer) return;
