@@ -415,7 +415,7 @@ async function startNewWeek() {
   }
 
   try {
-    const res = await fetch("/resetWeekly", {
+    const res = await fetch("https://hourlyxp-server.onrender.com/resetWeekly", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
