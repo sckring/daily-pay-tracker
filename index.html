@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.68</small>
+<small id="version">HourlyXP v1.4.69</small>
 
 <style>
 :root {
@@ -301,6 +301,9 @@ async function startShift() {
   save();
 
   // Send to server
+  try {
+	const userId = localStorage.getItem("userId");
+	
   const resp = await fetch("https://hourlyxp-server.onrender.com/startShift", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -310,10 +313,24 @@ async function startShift() {
       hourlyRate: rate
     })
   });
+  
+  if (!resp.ok) {
+	const text = await resp.text();
+	alert("Server error starting shift: " + text);
+	return;
+	}
 
   const serverShift = await resp.json();
-  data.activeShift.serverShiftId = serverShift.id;
-  save();
+  
+  //Attach server ID safely
+  if(data.activeShift) {
+	data.activeShift.serverShiftId = serverShift.id;
+	save();
+	}
+	
+}catch (err) {
+	alert("Network error shift.");
+	}
 
   if (!data.notificationPrompted && Notification.permission === "default") {
     maybeShowNotificationPrompt();
