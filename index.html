@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.69</small>
+<small id="version">HourlyXP v1.4.70</small>
 
 <style>
 :root {
@@ -321,6 +321,7 @@ async function startShift() {
 	}
 
   const serverShift = await resp.json();
+  alert(JSON.stringify(serverShift));
   
   //Attach server ID safely
   if(data.activeShift) {
