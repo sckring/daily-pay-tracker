@@ -8,7 +8,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<small id="version">HourlyXP v1.4.70</small>
+<small id="version">HourlyXP v1.4.72</small>
 
 <style>
 :root {
@@ -447,8 +447,15 @@ async function startNewWeek() {
       throw new Error("Failed to reset week");
     }
 
+    // ✅ RESET LOCAL STATE 
+	data.weekStart = Date.now();
+    data.weeklyGoalMet = false;
+
+    save();
+
     alert("New week started!");
     location.reload();
+
   } catch (err) {
     console.error(err);
     alert("Could not reset week");
@@ -517,13 +524,13 @@ function renderGoals(total) {
 
 function renderWeekly() {
   const currentWeekId = getWeekId();
-  if (data.weekId !== currentWeekId) {
+  if (!data.weekStart || Date.now() - data.weekStart > 604800000) {
     data.weekId = currentWeekId;
     data.weeklyGoalMet = false; // weekly flags reset only when new week starts
     save();
   }
 
-  const weekAgo = Date.now() - 604800000; // 7 days
+  const weekAgo = data.weekStart || (Date.now() - 604800000); // 7 days
   const weekJobs = data.jobs.filter(j => Number(j.startTime) >= weekAgo);
   const weekMisc = data.misc.filter(m => new Date(m.date).getTime() >= weekAgo);
 
